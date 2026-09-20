@@ -1,8 +1,8 @@
 import { BACK, FRONT, MIN_TYPE_MM, WHITE } from './spec.js';
-import { ascenderEm, runToPath, type FontSet } from './fonts.js';
+import { ascenderEm, inkBox, runToPath, type FontSet } from './fonts.js';
 import { buildQuery, deriveQuery, lineText, type Segment } from './query.js';
 import { buildQrTile } from './qr.js';
-import { displayUrl, fitSize, qrUrl, tidy, unsupportedChars } from './text.js';
+import { displayUrl, fitSize, fitToBand, qrUrl, tidy, unsupportedChars } from './text.js';
 import type { Drawing, InkRole, Metrics, Shape, ShirtDesign, ShirtInput } from './types.js';
 
 /**
@@ -54,8 +54,20 @@ export function layoutBack(
   const comment = `-- last updated: ${tidy(input.updated)}`;
 
   // Display lines fill the full trim width; the rest live in the type column.
-  const kickerSize = fitSize(kicker.length, BACK.widthMm);
-  const headlineSize = fitSize(headline.length, BACK.widthMm);
+  // Each is also held inside the band above its own baseline, so a short title
+  // grows to fill the measure without climbing off the top of the artwork.
+  const kickerTop = inkBox(fonts[500], kicker)?.y1 ?? 0.72;
+  const kickerSize = Math.min(
+    fitSize(kicker.length, BACK.widthMm),
+    fitToBand(kickerTop, BACK.kickerBaseline, 0),
+  );
+
+  const headlineTop = inkBox(fonts[600], headline)?.y1 ?? 0.72;
+  const headlineSize = Math.min(
+    fitSize(headline.length, BACK.widthMm),
+    // A quarter of its own size of clear air below the kicker's baseline.
+    fitToBand(headlineTop, BACK.headlineBaseline, BACK.kickerBaseline, 0.25),
+  );
 
   shapes.push(
     ...segmentPaths(fonts, 500, plain(kicker), {
@@ -80,7 +92,12 @@ export function layoutBack(
     value: tidy(input.value || derived.value),
   });
   const longest = Math.max(...query.map((l) => lineText(l).length));
-  const codeSize = fitSize(longest, col);
+  const codeBox = inkBox(fonts[500], query.map(lineText).join(''));
+  const codeSize = Math.min(
+    fitSize(longest, col),
+    // Never taller than the leading, or the lines grow into each other.
+    fitToBand((codeBox?.y1 ?? 0.76) - (codeBox?.y0 ?? -0.14), BACK.codeLeading, 0),
+  );
 
   query.forEach((line, i) => {
     shapes.push(
@@ -168,10 +185,23 @@ export function layoutFront(input: ShirtInput, fonts: FontSet, metrics: Partial<
   const value = tidy(input.chestValue) || 'true';
   const line = `${subject} = ${value}`;
 
-  const sizeMm = fitSize(line.length, FRONT.widthMm - FRONT.textX);
+  const box = inkBox(fonts[500], line);
+  const top = box?.y1 ?? 0.76;
+  const bottom = -(box?.y0 ?? 0);
+  const half = ascenderEm(fonts[500]) / 2;
+
   // Centre the ascender band on the dot's axis, so the dot reads as a bullet
-  // rather than as punctuation that drifted.
-  const baselineMm = FRONT.dot.cy + (ascenderEm(fonts[500]) / 2) * sizeMm;
+  // rather than as punctuation that drifted. Centring fixes the baseline, so
+  // the size is then held to whatever keeps the ink inside the print area.
+  const margin = 1;
+  const sizeMm = Math.min(
+    fitSize(line.length, FRONT.widthMm - FRONT.textX),
+    // Ink top:    dot.cy + half*s - top*s    >= margin
+    (FRONT.dot.cy - margin) / Math.max(top - half, 1e-6),
+    // Ink bottom: dot.cy + half*s + bottom*s <= height - margin
+    (FRONT.heightMm - margin - FRONT.dot.cy) / Math.max(half + bottom, 1e-6),
+  );
+  const baselineMm = FRONT.dot.cy + half * sizeMm;
   metrics.chestMm = sizeMm;
 
   return {

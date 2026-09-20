@@ -14,6 +14,29 @@ export function fitSize(chars: number, columnMm: number, max = Infinity): number
   return Math.min(max, filled);
 }
 
+/**
+ * The size at which a line exactly fills the vertical band above its baseline.
+ *
+ * Fitting to width alone is not enough: the baselines in this design are fixed,
+ * so a short title fitted to 270 mm sets huge and its capitals climb straight
+ * off the top of the artwork. Every auto-sized line is therefore the smaller of
+ * what its column allows and what its band allows.
+ *
+ * `inkTopEm` is how far the line's tallest glyph rises above the baseline, in
+ * em. `gapEm` reserves clear space below the ceiling, expressed in em of the
+ * line's own size so the gap stays proportional as the type grows.
+ */
+export function fitToBand(
+  inkTopEm: number,
+  baselineMm: number,
+  ceilingMm: number,
+  gapEm = 0,
+): number {
+  const band = baselineMm - ceilingMm;
+  if (band <= 0 || inkTopEm + gapEm <= 0) return Infinity;
+  return band / (inkTopEm + gapEm);
+}
+
 /** Width a line will actually occupy, in mm. */
 export function lineWidthMm(chars: number, sizeMm: number): number {
   return chars * ADVANCE_EM * sizeMm;

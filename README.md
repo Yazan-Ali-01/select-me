@@ -135,6 +135,13 @@ Because the family is monospaced, all of this is arithmetic rather than
 measurement: a line of *n* characters occupies `n × 0.6 em`, so the size that
 fills a column is `0.99 × column ÷ (n × 0.6)`.
 
+Width is not the only constraint. Because the baselines are fixed, a short
+title fitted to 270 mm would set big enough to climb off the top of the
+artwork — `CTO` wants to set at 148 mm. So every auto-sized line is the smaller
+of what its column allows and what the band above its baseline allows, and
+`bounds.test.js` asserts the invariant directly: nothing the generator draws
+may leave the print area, for any input.
+
 Literals in the query print in the accent ink and everything else prints in
 white. That is the entire syntax highlighter, and two inks is all a screen
 printer gets.
