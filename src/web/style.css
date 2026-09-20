@@ -1,0 +1,513 @@
+/* ---------------------------------------------------------------------------
+   select-me
+
+   Two materials, and the whole page is built out of them: the press table the
+   garment lies on, and the paper the spec sheet is printed on. Everything dark
+   is fabric or bench; the one light surface is paperwork. Nothing is a card.
+   --------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'Plex Mono';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/IBMPlexMono-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plex Mono';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/IBMPlexMono-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plex Mono';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/IBMPlexMono-SemiBold.woff2') format('woff2');
+}
+
+:root {
+  /* Bench and fabric. Warm-neutral rather than blue-black, so the paper below
+     reads as the same world rather than a different screenshot. */
+  --press: #131211;
+  --bench: #1b1a17;
+  --bench-hi: #232220;
+  --hair: #302e2a;
+  --hair-soft: #26241f;
+
+  --chalk: #f3f1ec;
+  --quiet: #96918a;
+  --faint: #6b665f;
+
+  /* The accent is the shirt's own ink; JS rewrites it when you pick another. */
+  --ink: #ffae3d;
+  --ink-dim: #ffae3d29;
+
+  --paper: #f2efe9;
+  --paper-ink: #1d1b17;
+  --paper-quiet: #6c665c;
+  --paper-hair: #d8d3c8;
+
+  --cloth: #111111;
+
+  --measure: 66ch;
+  --gutter: clamp(20px, 4vw, 44px);
+
+  --f-xs: 11.5px;
+  --f-sm: 13px;
+  --f-md: 15px;
+  --f-lg: 19px;
+  --f-xl: 24px;
+  --f-2xl: 31px;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--press);
+  color: var(--chalk);
+  font: 400 var(--f-md)/1.6 'Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-feature-settings: 'zero' 1;
+  letter-spacing: -0.008em;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+
+a { color: inherit; }
+
+.link {
+  color: var(--chalk);
+  text-decoration-color: var(--faint);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms ease, color 120ms ease;
+}
+.link:hover { color: var(--ink); text-decoration-color: var(--ink); }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+/* --- masthead ------------------------------------------------------------ */
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px var(--gutter);
+  padding: 20px var(--gutter);
+  border-bottom: 1px solid var(--hair);
+}
+
+.masthead__mark { display: flex; align-items: center; gap: 9px; }
+
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--ink);
+  transition: background 160ms ease;
+}
+
+.wordmark { font-weight: 600; font-size: var(--f-md); letter-spacing: -0.03em; }
+
+.masthead__line { color: var(--quiet); font-size: var(--f-sm); }
+
+.masthead__links {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: var(--f-sm);
+}
+
+.npx {
+  padding: 4px 9px;
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  color: var(--quiet);
+  font-size: var(--f-xs);
+  cursor: copy;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.npx:hover { color: var(--chalk); border-color: var(--faint); }
+.npx.is-copied { color: var(--ink); border-color: var(--ink); }
+
+/* --- the bench ------------------------------------------------------------ */
+
+.bench {
+  display: grid;
+  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+  align-items: start;
+  max-width: 1420px;
+  margin: 0 auto;
+}
+
+.inputs {
+  padding: var(--gutter);
+  border-right: 1px solid var(--hair);
+  display: grid;
+  gap: 22px;
+}
+
+.inputs__head h2 { font-size: var(--f-lg); }
+.inputs__head p { margin-top: 6px; color: var(--faint); font-size: var(--f-xs); max-width: 38ch; }
+
+.field { display: grid; gap: 6px; }
+.field--tight { gap: 4px; }
+
+.field__label {
+  color: var(--quiet);
+  font-size: var(--f-xs);
+  font-weight: 500;
+}
+
+.field__hint {
+  color: var(--faint);
+  font-size: var(--f-xs);
+  line-height: 1.45;
+}
+
+input[type='text'],
+select {
+  width: 100%;
+  padding: 9px 11px;
+  background: var(--bench);
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  color: var(--chalk);
+  font: inherit;
+  font-size: var(--f-sm);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+input[type='text']:hover,
+select:hover { border-color: var(--faint); }
+
+input[type='text']:focus,
+select:focus { outline: none; border-color: var(--ink); background: var(--bench-hi); }
+
+select { appearance: none; cursor: pointer; padding-right: 26px; }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.trio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+/* Ink swatches read as a press's ink shelf: a row of chips, one selected. */
+.swatches { margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
+.swatches legend { padding: 0; }
+.swatches__row { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.swatch {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  background: var(--swatch);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+.swatch:hover { transform: translateY(-2px); }
+.swatch.is-on {
+  border-color: var(--chalk);
+  box-shadow: inset 0 0 0 2px var(--press);
+}
+
+#ink-note { min-height: 1.45em; }
+
+.more { border-top: 1px solid var(--hair-soft); padding-top: 16px; }
+
+.more summary {
+  cursor: pointer;
+  color: var(--quiet);
+  font-size: var(--f-sm);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.more summary::-webkit-details-marker { display: none; }
+.more summary::before {
+  content: '+';
+  color: var(--ink);
+  font-weight: 600;
+}
+.more[open] summary::before { content: '\2212'; }
+.more summary:hover { color: var(--chalk); }
+
+.more__body { display: grid; gap: 14px; padding-top: 16px; }
+.more__note { color: var(--faint); font-size: var(--f-xs); }
+
+/* --- the proof ----------------------------------------------------------- */
+
+.proof { padding: var(--gutter); display: grid; gap: 18px; }
+
+.proof__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+
+.placements { display: flex; gap: 2px; }
+
+.placement {
+  padding: 6px 13px;
+  background: transparent;
+  border: 1px solid var(--hair);
+  color: var(--quiet);
+  font: inherit;
+  font-size: var(--f-xs);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.placement:first-child { border-radius: 3px 0 0 3px; }
+.placement:last-child { border-radius: 0 3px 3px 0; margin-left: -1px; }
+.placement:hover { color: var(--chalk); }
+.placement.is-on { color: var(--press); background: var(--chalk); border-color: var(--chalk); font-weight: 500; }
+
+.garments { margin-left: auto; display: flex; gap: 6px; }
+
+.garment-chip {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--hair);
+  border-radius: 50%;
+  background: var(--chip);
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+.garment-chip:hover { border-color: var(--faint); }
+.garment-chip.is-on { border-color: var(--ink); }
+
+/* The measurement callouts. This is the one flourish on the page, and it is
+   lifted straight from the drawing conventions of an actual print spec. */
+.stage { position: relative; padding: 30px 0 0 30px; }
+
+.rule { position: absolute; background: var(--ink); opacity: 0.85; }
+
+.rule--top {
+  top: 13px;
+  left: 30px;
+  right: 0;
+  height: 1px;
+  transform-origin: left center;
+}
+.rule--left {
+  left: 13px;
+  top: 30px;
+  bottom: 0;
+  width: 1px;
+  transform-origin: center top;
+}
+
+.rule::before,
+.rule::after { content: ''; position: absolute; background: var(--ink); }
+
+.rule--top::before,
+.rule--top::after { top: -4px; width: 1px; height: 9px; }
+.rule--top::before { left: 0; }
+.rule--top::after { right: 0; }
+
+.rule--left::before,
+.rule--left::after { left: -4px; height: 1px; width: 9px; }
+.rule--left::before { top: 0; }
+.rule--left::after { bottom: 0; }
+
+.rule__label {
+  position: absolute;
+  padding: 0 7px;
+  background: var(--press);
+  color: var(--ink);
+  font-size: var(--f-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.rule--top .rule__label { top: -0.75em; left: 50%; transform: translateX(-50%); }
+.rule--left .rule__label { left: 0.75em; top: 50%; transform: translate(-50%, -50%) rotate(-90deg); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .rule--top { animation: draw-x 560ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .rule--left { animation: draw-y 560ms 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  @keyframes draw-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes draw-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+}
+
+.cloth {
+  position: relative;
+  background: var(--cloth);
+  border: 1px solid var(--hair);
+  border-radius: 2px;
+  padding: clamp(14px, 3vw, 30px);
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  transition: background 200ms ease;
+}
+
+.cloth__art { width: 100%; }
+.cloth__art svg { display: block; width: 100%; height: auto; }
+
+.cloth__wait { display: none; color: var(--faint); font-size: var(--f-sm); }
+.cloth[data-loading='true'] .cloth__art { display: none; }
+.cloth[data-loading='true'] .cloth__wait { display: block; }
+
+/* Live production numbers. These change as you type, which is the point. */
+.docket {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: var(--hair-soft);
+  border: 1px solid var(--hair-soft);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.docket li {
+  flex: 1 1 128px;
+  padding: 9px 12px;
+  background: var(--bench);
+  display: grid;
+  gap: 2px;
+}
+
+.docket b {
+  color: var(--faint);
+  font-size: var(--f-xs);
+  font-weight: 400;
+}
+
+.docket span {
+  color: var(--chalk);
+  font-size: var(--f-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.alerts:empty { display: none; }
+
+.alert {
+  padding: 10px 13px;
+  border-left: 2px solid var(--ink);
+  background: var(--ink-dim);
+  color: var(--chalk);
+  font-size: var(--f-sm);
+  line-height: 1.5;
+}
+.alert + .alert { margin-top: 8px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.btn {
+  padding: 11px 18px;
+  background: transparent;
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  color: var(--chalk);
+  font: inherit;
+  font-size: var(--f-sm);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.btn:hover:not(:disabled) { border-color: var(--faint); background: var(--bench); }
+.btn:disabled { opacity: 0.45; cursor: progress; }
+
+.btn--go {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #16140f;
+  font-weight: 600;
+}
+.btn--go:hover:not(:disabled) { background: var(--ink); border-color: var(--chalk); color: #16140f; filter: brightness(1.08); }
+
+/* --- the paperwork -------------------------------------------------------- */
+
+.handoff { padding: clamp(40px, 7vw, 84px) var(--gutter); }
+
+.sheet {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 52px);
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: 2px;
+  box-shadow: 0 1px 0 #ffffff26, 0 22px 50px -24px #00000099;
+}
+
+.sheet h2 { font-size: var(--f-xl); }
+.sheet__lede { margin-top: 8px; color: var(--paper-quiet); font-size: var(--f-sm); max-width: var(--measure); }
+
+.files { margin-top: 30px; border-top: 1px solid var(--paper-hair); }
+
+.files li {
+  display: grid;
+  grid-template-columns: minmax(0, 15em) minmax(0, 11em) minmax(0, 1fr);
+  gap: 6px 20px;
+  align-items: baseline;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--paper-hair);
+  font-size: var(--f-sm);
+}
+.files code { font-weight: 600; }
+.files span { color: var(--paper-quiet); font-size: var(--f-xs); white-space: nowrap; }
+.files em { color: var(--paper-quiet); font-style: normal; font-size: var(--f-xs); }
+
+.sheet__cols {
+  margin-top: 34px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 26px 34px;
+}
+.sheet__cols h3 { font-size: var(--f-sm); }
+.sheet__cols p { margin-top: 7px; color: var(--paper-quiet); font-size: var(--f-sm); line-height: 1.6; }
+
+/* --- provenance ----------------------------------------------------------- */
+
+.story {
+  padding: clamp(36px, 6vw, 72px) var(--gutter);
+  border-top: 1px solid var(--hair);
+}
+
+/* Same left edge as the sheet above, so the page keeps one spine. */
+.story__body { max-width: 1000px; margin: 0 auto; display: grid; gap: 16px; }
+.story__body > * { max-width: var(--measure); }
+.story h2 { font-size: var(--f-xl); }
+.story p { color: var(--quiet); font-size: var(--f-sm); line-height: 1.7; }
+.story__sign { color: var(--faint); }
+
+.foot {
+  padding: 26px var(--gutter) 40px;
+  border-top: 1px solid var(--hair);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 30px;
+  color: var(--faint);
+  font-size: var(--f-xs);
+}
+.foot__row { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+
+/* --- narrow --------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .bench { grid-template-columns: 1fr; }
+  /* The artwork is the thing worth seeing first on a phone. */
+  .proof { order: -1; }
+  .inputs { border-right: 0; border-top: 1px solid var(--hair); }
+  .trio { grid-template-columns: 1fr; }
+  .stage { padding: 26px 0 0 26px; }
+}
+
+@media (max-width: 560px) {
+  .masthead__links { margin-left: 0; width: 100%; }
+  .files li { grid-template-columns: 1fr; gap: 2px; }
+  .pair { grid-template-columns: 1fr; }
+}

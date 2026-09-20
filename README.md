@@ -1,0 +1,191 @@
+# select-me
+
+Type your name, your job title and a link. Get print-ready shirt artwork — vector
+files, a 300 DPI raster, and a specification sheet your printer will not have to
+email you about.
+
+**[select-me.dev](https://select-me.dev)** · `npx select-me`
+
+![The back print: SENIOR SOFTWARE ENGINEER, YOUR NEXT HIRE., and a SQL query beside a QR tile](docs/back-print.png)
+
+---
+
+## Why this exists
+
+I designed one shirt to wear to interviews. People asked for their own, and a
+design that only works for one person is a worse design than one that works for
+everyone. So I measured the original artwork, worked out the rules behind it, and
+rebuilt it as a generator.
+
+One rule turned out to govern the whole layout: **every automatically sized line
+fills 99% of its column.** That 1% is why the last letter never touches the trim
+edge. The kicker, the code block and the chest line all land on it exactly.
+
+The test suite regenerates my original shirt from those rules and compares it to
+the original file, edge by edge. It passes to within 0.01 mm.
+
+## What you get
+
+| File | Format | Placement |
+| --- | --- | --- |
+| `back-print-270mm` | SVG, PDF, PNG | 270 × 182 mm, centred, 82 mm below the collar seam |
+| `front-chest-100mm` | SVG, PDF, PNG | 100 × 20 mm, left chest, deliberately off-centre |
+| `PRINT-SPEC.pdf` | PDF | Placement, inks, and the one warning that matters |
+| `README.txt` | Text | The same instructions, for whoever opens the folder first |
+
+Everything is at exact final size. Nothing needs scaling.
+
+### Made for an actual press
+
+- **Two inks, never more.** Every mark is one of two colours, so a screen printer
+  burns two screens per placement instead of matching a gradient.
+- **Real CMYK.** The PDFs carry CMYK fills and a Pantone reference, not a
+  screen-RGB guess a RIP has to interpret.
+- **Type is outlined.** Every character is a filled contour. No font to install,
+  nothing to substitute — the most common way artwork arrives wrong.
+- **The QR is a knockout.** Its dark modules are unprinted and the garment shows
+  through. The spec sheet says so in the largest words on the page, because
+  filling them in is the one mistake that stops the code scanning.
+
+## Use it
+
+### In a browser
+
+[select-me.dev](https://select-me.dev). Everything runs client-side: the fonts,
+the outlining, the QR, the PDF writer. There is no server, no account and no
+upload, which is not a privacy policy so much as an architecture.
+
+### On the command line
+
+```sh
+npx select-me
+```
+
+Run with no arguments and it asks for the three things it needs. Or pass them:
+
+```sh
+npx select-me \
+  --name "Ada Lovelace" \
+  --title "Staff Data Scientist" \
+  --url "ada.dev/hire" \
+  --accent mint \
+  --out ./artwork
+```
+
+`--help` lists everything. The CLI writes SVG and PDF; PNG needs a canvas, so it
+comes out of the web tool.
+
+### As a library
+
+```sh
+npm install select-me
+```
+
+```js
+import { readFile } from 'node:fs/promises';
+import { EXAMPLE, layout, loadFonts, toSvg, toPdf } from 'select-me';
+
+const fonts = await loadFonts(async (file) => {
+  const buf = await readFile(new URL(`./node_modules/select-me/assets/fonts/${file}`, import.meta.url));
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+});
+
+const design = layout({ ...EXAMPLE, name: 'Ada Lovelace' }, fonts);
+
+const svg = toSvg(design.back, design.palette);   // string
+const pdf = await toPdf(design.back, design.palette); // Uint8Array, CMYK
+design.metrics; // { queryMm: 10.89, qrModules: 29, inks: 2, ... }
+design.warnings; // things the layout had to do to make your input fit
+```
+
+`layout()` returns plain data. The renderers take that data and nothing else,
+which is why the SVG, the PDF and the PNG cannot drift apart.
+
+## How the layout works
+
+The design is a grid of fixed baselines and one sizing rule.
+
+```
+  0 ┌───────────────────────────────────────────────────┐
+ 14 │ TITLE, fitted to the full 270 mm                  │
+ 50 │ HEADLINE, fitted to the full 270 mm               │
+    │                                                   │
+ 78 │ SELECT name FROM engineers          ┌───────────┐ │
+ 92 │ WHERE level = 'senior'              │           │ │
+106 │   AND available = true;             │  QR tile  │ │
+113 │ ───────────────────────             │   76 mm   │ │
+131 │ Your Name                           └───────────┘ │
+    │                                                   │
+160 │ your-link.example                                 │
+175 │ -- last updated: today                            │
+182 └───────────────────────────────────────────────────┘
+    0                                  171.6   194   270
+```
+
+Baselines never move. Type sizes are computed:
+
+- **Display lines** (title, headline) fill the full 270 mm trim width.
+- **The query** takes one size for all three lines — a code block with mixed
+  sizes is not a code block — set from the longest line against the 171.6 mm
+  column.
+- **Name, link and comment** have nominal sizes (14, 13 and 8 mm) and only ever
+  shrink, so a short name stays bold and a long one still fits.
+
+Because the family is monospaced, all of this is arithmetic rather than
+measurement: a line of *n* characters occupies `n × 0.6 em`, so the size that
+fills a column is `0.99 × column ÷ (n × 0.6)`.
+
+Literals in the query print in the accent ink and everything else prints in
+white. That is the entire syntax highlighter, and two inks is all a screen
+printer gets.
+
+## Development
+
+```sh
+npm install
+npm run fonts    # rebuild the IBM Plex Mono subsets
+npm run dev      # the web tool, on :5173
+npm run check    # typecheck
+npm run build    # library + site
+npm test
+```
+
+### The tests worth knowing about
+
+- **`original.test.js`** regenerates the shirt this project came from and
+  compares every element against the original artwork, to 0.01 mm.
+- **`qr-scan.test.js`** rasterises the QR straight out of the generated path
+  data, applies the even-odd rule the print file relies on, and hands it to a
+  real decoder. If the knockout polarity, quiet zone or module grid is ever
+  wrong, it fails before anyone pays for a screen.
+- **`core.test.js`** covers the sizing rule, the query derivation, PDF structure
+  (including that every xref offset points where it claims), and that no
+  generated file ever contains a non-finite coordinate.
+
+### Notes on the dependencies
+
+There are two: [opentype.js](https://github.com/opentypejs/opentype.js) for glyph
+outlines and
+[qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) for the
+code. The PDF writer, the ZIP writer and the path serialiser are all in this
+repo — each is under 200 lines, and each replaced a dependency that would have
+been larger than the whole tool.
+
+Two things worth knowing if you work on this:
+
+- opentype.js 2.0.0's own path serialiser emits a literal `NaN` into multi-glyph
+  paths. A raster previewer skips it silently; a print RIP does not. `fonts.ts`
+  serialises the commands itself.
+- opentype.js publishes a CommonJS `main` and an ES `module` with different
+  shapes, so Node and bundlers see different exports. `fonts.ts` reads through
+  both, so nobody consuming this library has to configure anything.
+
+## Licence
+
+Code is MIT. IBM Plex Mono is under the SIL Open Font License 1.1, and its
+licence travels with the font files in `assets/fonts`.
+
+The design is yours to use, change and print. If you make something good with it,
+I would like to see it.
+
+— [Yazan Ali](https://yazan-ali.net/hi)

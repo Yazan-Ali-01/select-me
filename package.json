@@ -1,0 +1,74 @@
+{
+  "name": "select-me",
+  "version": "1.0.0",
+  "description": "Generate a print-ready job-hunt shirt from one SQL query. Two inks, two placements, vector output.",
+  "keywords": [
+    "shirt",
+    "sql",
+    "print",
+    "generator",
+    "svg",
+    "pdf",
+    "qr",
+    "job-search",
+    "screen-printing",
+    "dtg"
+  ],
+  "license": "MIT",
+  "author": "Yazan Ali (https://yazan-ali.net)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yazan-ali/select-me.git"
+  },
+  "homepage": "https://select-me.dev",
+  "bugs": {
+    "url": "https://github.com/yazan-ali/select-me/issues"
+  },
+  "type": "module",
+  "bin": {
+    "select-me": "./lib/cli.js"
+  },
+  "main": "./lib/core/index.js",
+  "types": "./lib/core/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/core/index.d.ts",
+      "default": "./lib/core/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "assets/fonts",
+    "README.md",
+    "LICENSE",
+    "LICENSE-FONTS"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:lib && npm run build:web",
+    "build:lib": "tsc -p tsconfig.lib.json && chmod +x lib/cli.js",
+    "build:web": "vite build",
+    "vercel-build": "vite build",
+    "preview": "vite preview",
+    "fonts": "node scripts/build-fonts.js",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "opentype.js": "^2.0.0",
+    "qrcode-generator": "^2.0.4"
+  },
+  "devDependencies": {
+    "@ibm/plex-mono": "^2.5.0",
+    "@types/node": "^26.6.2",
+    "@types/opentype.js": "^1.3.10",
+    "jsqr": "^1.4.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "wawoff2": "^2.0.1"
+  }
+}

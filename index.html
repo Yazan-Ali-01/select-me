@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>select-me — print-ready job-hunt shirt from one SQL query</title>
+<meta name="description" content="Type your name, title and URL. Get vector artwork, a 300 DPI PNG and a print specification sheet, ready to hand to any shop. Free, open source, runs entirely in your browser." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:title" content="select-me" />
+<meta property="og:description" content="Print-ready job-hunt shirt artwork from one SQL query. Open source, no upload, no account." />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="stylesheet" href="/src/web/style.css" />
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__mark">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="wordmark">select-me</span>
+  </div>
+  <p class="masthead__line">Print-ready shirt artwork from one SQL query.</p>
+  <div class="masthead__links">
+    <code class="npx" data-copy="npx select-me" title="Copy">npx select-me</code>
+    <a class="link" href="https://github.com/yazan-ali/select-me">Source</a>
+  </div>
+</header>
+
+<main class="bench">
+
+  <form class="inputs" id="form" autocomplete="off">
+    <div class="inputs__head">
+      <h2>Your details</h2>
+      <p>Nothing leaves your browser. There is no server to send it to.</p>
+    </div>
+
+    <label class="field">
+      <span class="field__label">Name</span>
+      <input name="name" id="f-name" type="text" spellcheck="false" maxlength="40" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Job title</span>
+      <input name="title" id="f-title" type="text" spellcheck="false" maxlength="48" />
+      <span class="field__hint">Sets the line across the top, and writes the query below it.</span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Link</span>
+      <input name="url" id="f-url" type="text" spellcheck="false" inputmode="url" maxlength="60" />
+      <span class="field__hint">Printed under the rule and encoded in the QR square.</span>
+    </label>
+
+    <fieldset class="swatches">
+      <legend class="field__label">Ink</legend>
+      <div class="swatches__row" id="accents" role="radiogroup" aria-label="Accent ink"></div>
+      <p class="field__hint" id="ink-note"></p>
+    </fieldset>
+
+    <details class="more">
+      <summary>Change the wording</summary>
+      <div class="more__body">
+        <label class="field field--tight">
+          <span class="field__label">Headline</span>
+          <input name="headline" id="f-headline" type="text" spellcheck="false" maxlength="30" />
+        </label>
+
+        <div class="pair">
+          <label class="field field--tight">
+            <span class="field__label">Chest</span>
+            <input name="chestSubject" id="f-chestSubject" type="text" spellcheck="false" maxlength="24" />
+          </label>
+          <label class="field field--tight">
+            <span class="field__label">equals</span>
+            <input name="chestValue" id="f-chestValue" type="text" spellcheck="false" maxlength="24" />
+          </label>
+        </div>
+
+        <p class="more__note">The query is written from your job title. Change any part of it here.</p>
+        <div class="trio">
+          <label class="field field--tight">
+            <span class="field__label">Table</span>
+            <input name="table" id="f-table" type="text" spellcheck="false" maxlength="24" />
+          </label>
+          <label class="field field--tight">
+            <span class="field__label">Column</span>
+            <input name="field" id="f-field" type="text" spellcheck="false" maxlength="24" />
+          </label>
+          <label class="field field--tight">
+            <span class="field__label">Value</span>
+            <input name="value" id="f-value" type="text" spellcheck="false" maxlength="24" />
+          </label>
+        </div>
+
+        <div class="pair">
+          <label class="field field--tight">
+            <span class="field__label">Comment</span>
+            <input name="updated" id="f-updated" type="text" spellcheck="false" maxlength="24" />
+          </label>
+          <label class="field field--tight">
+            <span class="field__label">QR recovery</span>
+            <select name="ecc" id="f-ecc">
+              <option value="L">L — 7%</option>
+              <option value="M">M — 15%</option>
+              <option value="Q">Q — 25%</option>
+              <option value="H">H — 30%</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </details>
+  </form>
+
+  <section class="proof" aria-label="Preview">
+    <div class="proof__bar">
+      <div class="placements" role="tablist" aria-label="Placement">
+        <button type="button" class="placement is-on" data-view="back" role="tab" aria-selected="true">Back</button>
+        <button type="button" class="placement" data-view="front" role="tab" aria-selected="false">Chest</button>
+      </div>
+      <div class="garments" role="radiogroup" aria-label="Garment colour">
+        <button type="button" class="garment-chip is-on" data-garment="#111111" style="--chip:#111111" aria-label="Black" title="Black"></button>
+        <button type="button" class="garment-chip" data-garment="#2E2E2E" style="--chip:#2E2E2E" aria-label="Charcoal" title="Charcoal"></button>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="rule rule--top" aria-hidden="true"><span class="rule__label" id="dim-w">270 mm</span></div>
+      <div class="rule rule--left" aria-hidden="true"><span class="rule__label" id="dim-h">182 mm</span></div>
+      <div class="cloth" id="cloth" data-loading="true">
+        <div class="cloth__art" id="art"></div>
+        <p class="cloth__wait">Loading IBM Plex Mono…</p>
+      </div>
+    </div>
+
+    <ul class="docket" id="docket"></ul>
+    <div class="alerts" id="alerts" role="status" aria-live="polite"></div>
+
+    <div class="actions">
+      <button type="button" class="btn btn--go" id="download">Download the artwork</button>
+      <button type="button" class="btn" id="share">Copy a link to this design</button>
+    </div>
+  </section>
+</main>
+
+<section class="handoff">
+  <div class="sheet">
+    <h2>What your printer gets</h2>
+    <p class="sheet__lede">One folder, five files, every number they will ask you for already written down.</p>
+
+    <ul class="files" id="files">
+      <li><code>back-print-270mm</code><span>.svg .pdf .png</span><em>270 × 182 mm, centred, 82 mm below the collar</em></li>
+      <li><code>front-chest-100mm</code><span>.svg .pdf .png</span><em>100 × 20 mm, left chest, deliberately off-centre</em></li>
+      <li><code>PRINT-SPEC.pdf</code><span>1 page</span><em>Placement, inks, and the one warning that matters</em></li>
+    </ul>
+
+    <div class="sheet__cols">
+      <div>
+        <h3>Two inks, nothing else</h3>
+        <p>Every line is one of two colours, so a screen printer burns two screens per placement instead of matching a gradient. PDFs carry real CMYK values and a Pantone reference, not a screen-RGB guess.</p>
+      </div>
+      <div>
+        <h3>The QR square is a knockout</h3>
+        <p>Its dark modules are unprinted — the garment shows through them. Fill them in and the code stops scanning, so the spec sheet says so in the largest words on the page.</p>
+      </div>
+      <div>
+        <h3>Type is outlined</h3>
+        <p>Every character ships as a filled contour, so there is no font to install and nothing to substitute. The most common way artwork arrives wrong is already ruled out.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="story">
+  <div class="story__body">
+    <h2>This was one shirt</h2>
+    <p>I designed it to wear to interviews: my title across the shoulders, the query underneath, a QR square linking to my work. Then people started asking for their own, and a design that only works for one person is a worse design than one that works for everyone.</p>
+    <p>So I measured the original artwork down to a hundredth of a millimetre, worked out the rule behind every type size on it, and rebuilt it as this. One rule turned out to govern the whole thing: every automatically sized line fills 99% of its column. That 1% is why the last letter never touches the trim edge.</p>
+    <p>The test suite regenerates my shirt from those rules and compares it against the original file, edge by edge. It passes to within 0.01 mm.</p>
+    <p class="story__sign">— <a class="link" href="https://yazan-ali.net/hi">Yazan Ali</a>, who is still available.</p>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="foot__row">
+    <p>MIT licensed. IBM Plex Mono under the SIL Open Font License.</p>
+    <p>No analytics, no accounts, no upload. The generator runs in your browser.</p>
+  </div>
+  <div class="foot__row">
+    <a class="link" href="https://github.com/yazan-ali/select-me">GitHub</a>
+    <a class="link" href="https://www.npmjs.com/package/select-me">npm</a>
+    <a class="link" href="https://yazan-ali.net/hi">Yazan Ali</a>
+  </div>
+</footer>
+
+<script type="module" src="/src/web/main.ts"></script>
+</body>
+</html>
