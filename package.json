@@ -50,6 +50,8 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run build:lib && npm run build:web",
+    "prepare": "npm run build:lib",
+    "prepublishOnly": "npm test",
     "build:lib": "tsc -p tsconfig.lib.json && chmod +x lib/cli.js",
     "build:web": "vite build",
     "vercel-build": "vite build",
