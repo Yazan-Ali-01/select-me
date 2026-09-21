@@ -62,7 +62,7 @@ await shot(
 await shot(
   page(
     `<div class="card"><div class="art">${art}</div>
-     <div class="foot"><span class="dot"></span>select-me<em>select-me.dev</em></div></div>`,
+     <div class="foot"><span class="dot"></span>select-me<em>selectme.vercel.app</em></div></div>`,
     /* The art box takes the space the footer leaves, and the SVG's own
        viewBox letterboxes inside it — so the card can never crop the artwork. */
     `.card{width:1200px;height:630px;padding:48px 60px;display:flex;flex-direction:column;gap:26px}

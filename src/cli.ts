@@ -51,7 +51,7 @@ const HELP = `
 
   Output
     SVG and PDF for both placements, plus a print specification sheet.
-    PNG needs a canvas, so it only comes out of the web tool at select-me.dev.
+    PNG needs a canvas, so it only comes out of the web tool at selectme.vercel.app.
 `;
 
 function parseArgs(argv: string[]): Record<string, string | true> {
@@ -173,7 +173,7 @@ async function main(): Promise<void> {
   for (const warning of design.warnings) stdout.write(`  ! ${warning}\n`);
   if (design.warnings.length) stdout.write('\n');
   stdout.write(`  Wrote ${files.length} files to ${dir}\n`);
-  stdout.write('  Send the whole folder to your printer. PNG: select-me.dev\n\n');
+  stdout.write('  Send the whole folder to your printer. PNG: selectme.vercel.app\n\n');
 }
 
 main().catch((error: unknown) => {

@@ -4,7 +4,7 @@ Type your name, your job title and a link. Get print-ready shirt artwork — vec
 files, a 300 DPI raster, and a specification sheet your printer will not have to
 email you about.
 
-**[select-me.dev](https://select-me.dev)** · `npx select-me`
+**[selectme.vercel.app](https://selectme.vercel.app)** · `npx select-me`
 
 ![The back print: SENIOR SOFTWARE ENGINEER, YOUR NEXT HIRE., and a SQL query beside a QR tile](docs/back-print.png)
 
@@ -51,7 +51,7 @@ Everything is at exact final size. Nothing needs scaling.
 
 ### In a browser
 
-[select-me.dev](https://select-me.dev). Everything runs client-side: the fonts,
+[selectme.vercel.app](https://selectme.vercel.app). Everything runs client-side: the fonts,
 the outlining, the QR, the PDF writer. There is no server, no account and no
 upload, which is not a privacy policy so much as an architecture.
 

@@ -18,11 +18,11 @@
   "author": "Yazan Ali (https://yazan-ali.net)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yazan-ali/select-me.git"
+    "url": "git+https://github.com/Yazan-Ali-01/select-me.git"
   },
-  "homepage": "https://select-me.dev",
+  "homepage": "https://selectme.vercel.app",
   "bugs": {
-    "url": "https://github.com/yazan-ali/select-me/issues"
+    "url": "https://github.com/Yazan-Ali-01/select-me/issues"
   },
   "type": "module",
   "bin": {

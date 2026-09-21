@@ -269,7 +269,7 @@ function readme(d: ShirtDesign): string {
     `  Query printed on the back:`,
     ...d.query.map((line) => `    ${line}`),
     '',
-    'Generated with select-me — https://select-me.dev',
+    'Generated with select-me — https://selectme.vercel.app',
     '',
   ].join('\n');
 }
