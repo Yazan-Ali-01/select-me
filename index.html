@@ -48,18 +48,68 @@
     </label>
 
     <label class="field">
-      <span class="field__label">Link</span>
+      <span class="field__label">Printed link</span>
       <input name="url" id="f-url" type="text" spellcheck="false" inputmode="url" maxlength="60" />
-      <span class="field__hint">Printed under the rule and encoded in the QR square.</span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">QR link</span>
+      <input name="qrTarget" id="f-qrTarget" type="text" spellcheck="false" inputmode="url" maxlength="120" />
+      <span class="field__hint">
+        Leave this empty and the code points at the printed link — that is how mine works.
+        Fill it in to send scans somewhere else, like a calendar or a CV.
+      </span>
+      <span class="field__hint field__hint--live" id="qr-encodes"></span>
     </label>
 
     <fieldset class="swatches">
       <legend class="field__label">Ink</legend>
       <div class="swatches__row" id="accents" role="radiogroup" aria-label="Accent ink"></div>
+      <div class="hex">
+        <input type="color" id="f-color" aria-label="Pick an ink colour" />
+        <input type="text" id="f-hex" spellcheck="false" maxlength="7" aria-label="Ink colour as hex" />
+      </div>
       <p class="field__hint" id="ink-note"></p>
     </fieldset>
 
-    <details class="more">
+    <fieldset class="query">
+      <legend class="field__label">The query</legend>
+      <p class="field__hint">Every name and value in it is yours to change.</p>
+
+      <div class="query__code">
+        <p class="q-line">
+          <span class="q-kw">SELECT</span>
+          <input class="q-in q-id" data-q="selectColumn" aria-label="Selected column" spellcheck="false" maxlength="24" />
+          <span class="q-kw">FROM</span>
+          <input class="q-in q-id" data-q="table" aria-label="Table name" spellcheck="false" maxlength="24" />
+        </p>
+        <p class="q-line">
+          <span class="q-kw">WHERE</span>
+          <input class="q-in q-id" data-q="field" aria-label="Filter column" spellcheck="false" maxlength="24" />
+          <span class="q-op">=</span>
+          <span class="q-lit">'</span><input class="q-in q-lit" data-q="value" aria-label="Filter value" spellcheck="false" maxlength="28" /><span class="q-lit">'</span>
+        </p>
+        <p class="q-line q-line--indent">
+          <span class="q-kw">AND</span>
+          <input class="q-in q-id" data-q="andField" aria-label="Second filter column" spellcheck="false" maxlength="24" />
+          <span class="q-op">=</span>
+          <input class="q-in q-lit" data-q="andValue" aria-label="Second filter value" spellcheck="false" maxlength="24" /><span
+            class="q-semi" id="q-semi-and">;</span>
+        </p>
+        <p class="q-line" id="q-sort-line" hidden>
+          <span class="q-kw">ORDER BY</span>
+          <input class="q-in q-id" data-q="sortBy" aria-label="Sort column" spellcheck="false" maxlength="24" />
+          <span class="q-kw">DESC LIMIT</span> <span class="q-lit">1</span><span class="q-semi">;</span>
+        </p>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" id="f-sortOn" />
+        <span>Sort by best candidate</span>
+      </label>
+    </fieldset>
+
+    <details class="more" open>
       <summary>Change the wording</summary>
       <div class="more__body">
         <label class="field field--tight">
@@ -75,22 +125,6 @@
           <label class="field field--tight">
             <span class="field__label">equals</span>
             <input name="chestValue" id="f-chestValue" type="text" spellcheck="false" maxlength="24" />
-          </label>
-        </div>
-
-        <p class="more__note">The query is written from your job title. Change any part of it here.</p>
-        <div class="trio">
-          <label class="field field--tight">
-            <span class="field__label">Table</span>
-            <input name="table" id="f-table" type="text" spellcheck="false" maxlength="24" />
-          </label>
-          <label class="field field--tight">
-            <span class="field__label">Column</span>
-            <input name="field" id="f-field" type="text" spellcheck="false" maxlength="24" />
-          </label>
-          <label class="field field--tight">
-            <span class="field__label">Value</span>
-            <input name="value" id="f-value" type="text" spellcheck="false" maxlength="24" />
           </label>
         </div>
 

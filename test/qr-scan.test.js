@@ -83,3 +83,29 @@ test('an email address becomes a mailto code', () => {
   const result = decodeQrFromSvg(toSvg(design.back, design.palette));
   assert.equal(result?.data, 'mailto:hello@example.com');
 });
+
+test('the QR can point somewhere other than the printed link', () => {
+  const design = layout(
+    { ...EXAMPLE, url: 'yazan-ali.net/hi', qrTarget: 'https://cal.com/yazan/30min' },
+    fonts,
+  );
+  const result = decodeQrFromSvg(toSvg(design.back, design.palette));
+  assert.equal(result?.data, 'https://cal.com/yazan/30min', 'the code follows the override');
+  assert.equal(design.metrics.qrTarget, 'https://cal.com/yazan/30min');
+
+  const svg = toSvg(design.back, design.palette);
+  assert.ok(svg.length > 0);
+});
+
+test('an empty override falls back to the printed link', () => {
+  for (const qrTarget of ['', '   ', undefined]) {
+    const design = layout({ ...EXAMPLE, url: 'yazan-ali.net/hi', qrTarget }, fonts);
+    const result = decodeQrFromSvg(toSvg(design.back, design.palette));
+    assert.equal(result?.data, 'https://yazan-ali.net/hi', `qrTarget ${JSON.stringify(qrTarget)}`);
+  }
+});
+
+test('a bare override still becomes an absolute link', () => {
+  const design = layout({ ...EXAMPLE, qrTarget: 'cal.com/yazan' }, fonts);
+  assert.equal(decodeQrFromSvg(toSvg(design.back, design.palette))?.data, 'https://cal.com/yazan');
+});

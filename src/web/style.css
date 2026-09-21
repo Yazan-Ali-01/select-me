@@ -227,6 +227,110 @@ select { appearance: none; cursor: pointer; padding-right: 26px; }
 
 #ink-note { min-height: 1.45em; }
 
+.field__hint--live { color: var(--ink); }
+.field__hint--live:empty { display: none; }
+
+/* Hex entry sits beside the shelf: pick one, or paste the one your brand uses. */
+.hex { display: flex; gap: 8px; align-items: center; }
+
+.hex input[type='color'] {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
+}
+.hex input[type='color']::-webkit-color-swatch-wrapper { padding: 2px; }
+.hex input[type='color']::-webkit-color-swatch { border: 0; border-radius: 2px; }
+.hex input[type='color']::-moz-color-swatch { border: 0; border-radius: 2px; }
+
+.hex input[type='text'] {
+  width: 10ch;
+  padding: 6px 9px;
+  font-size: var(--f-xs);
+  text-transform: uppercase;
+}
+
+/* The query is edited as the query. Each field is a hole in the statement,
+   sized to its own contents, coloured by what it is: white for the things
+   that name something, accent for the literals — the same split the two
+   screens will print. */
+.query { margin: 0; padding: 0; border: 0; display: grid; gap: 10px; }
+.query legend { padding: 0; }
+
+.query__code {
+  padding: 13px 14px;
+  background: var(--bench);
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  font-size: var(--f-sm);
+  line-height: 2.1;
+  overflow-x: auto;
+}
+
+.q-line { white-space: nowrap; }
+.q-line--indent { padding-left: 2ch; }
+
+.q-kw { color: var(--chalk); }
+.q-op { color: var(--quiet); }
+.q-lit { color: var(--ink); }
+.q-semi { color: var(--chalk); }
+
+.q-in {
+  /* Width is set in `ch` from the content length, so the padding must sit
+     outside it or every field clips its own last character. */
+  box-sizing: content-box;
+  width: 6ch;
+  padding: 1px 3px;
+  border: 0;
+  border-bottom: 1px dashed var(--faint);
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  font-size: inherit;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.q-in:hover { border-bottom-color: var(--quiet); background: var(--bench-hi); }
+.q-in:focus { outline: none; border-bottom-color: var(--ink); background: var(--bench-hi); }
+
+.q-id { color: var(--chalk); }
+.q-in.q-lit { color: var(--ink); }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--quiet);
+  font-size: var(--f-sm);
+  cursor: pointer;
+}
+.check:hover { color: var(--chalk); }
+
+.check input {
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  background: var(--bench);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.check input:checked { background: var(--ink); border-color: var(--ink); }
+.check input:checked::after {
+  content: '';
+  width: 7px;
+  height: 4px;
+  border-left: 2px solid #16140f;
+  border-bottom: 2px solid #16140f;
+  transform: rotate(-45deg) translate(0.5px, -1px);
+}
+
 .more { border-top: 1px solid var(--hair-soft); padding-top: 16px; }
 
 .more summary {

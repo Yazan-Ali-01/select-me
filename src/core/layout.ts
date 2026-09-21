@@ -1,6 +1,6 @@
 import { BACK, FRONT, MIN_TYPE_MM, WHITE } from './spec.js';
 import { ascenderEm, inkBox, runToPath, type FontSet } from './fonts.js';
-import { buildQuery, deriveQuery, lineText, type Segment } from './query.js';
+import { buildQuery, lineText, resolveQuery, type Segment } from './query.js';
 import { buildQrTile } from './qr.js';
 import { displayUrl, fitSize, fitToBand, qrUrl, tidy, unsupportedChars } from './text.js';
 import type { Drawing, InkRole, Metrics, Shape, ShirtDesign, ShirtInput } from './types.js';
@@ -84,13 +84,9 @@ export function layoutBack(
     }),
   );
 
-  // One size for all three query lines — a code block with mixed sizes is not a code block.
-  const derived = deriveQuery(input.title);
-  const query = buildQuery({
-    table: tidy(input.table || derived.table),
-    field: tidy(input.field || derived.field),
-    value: tidy(input.value || derived.value),
-  });
+  // One size for every query line — a code block with mixed sizes is not a
+  // code block — set from the longest line against the type column.
+  const query = buildQuery(resolveQuery(input, input.title));
   const longest = Math.max(...query.map((l) => lineText(l).length));
   const codeBox = inkBox(fonts[500], query.map(lineText).join(''));
   const codeSize = Math.min(
@@ -109,7 +105,12 @@ export function layoutBack(
     );
   });
 
-  shapes.push({ kind: 'rect', x: 0, y: BACK.rule.y, w: col, h: BACK.rule.heightMm, ink: 'white' });
+  // The rule and the name follow the query down; the link and comment do not.
+  const lastCodeBaseline = BACK.codeBaseline + (query.length - 1) * BACK.codeLeading;
+  const ruleY = lastCodeBaseline + BACK.ruleGap;
+  const nameBaseline = ruleY + BACK.nameGap;
+
+  shapes.push({ kind: 'rect', x: 0, y: ruleY, w: col, h: BACK.rule.heightMm, ink: 'white' });
 
   // Fixed sizes that only ever shrink, so short names stay bold and long ones still fit.
   const nameSize = fitSize(name.length, col, BACK.nameSizeMm);
@@ -120,11 +121,12 @@ export function layoutBack(
     ...segmentPaths(fonts, 600, plain(name), {
       sizeMm: nameSize,
       penXMm: 0,
-      baselineMm: BACK.nameBaseline,
+      baselineMm: nameBaseline,
     }),
   );
 
-  const tile = buildQrTile(qrUrl(input.url), {
+  const target = qrUrl(tidy(input.qrTarget || '') || input.url);
+  const tile = buildQrTile(target, {
     x: BACK.qr.x,
     y: BACK.qr.y,
     sizeMm: BACK.qr.sizeMm,
@@ -175,6 +177,7 @@ export function layoutBack(
     urlMm: urlSize,
     qrModules: tile.moduleCount,
     qrModuleMm: tile.moduleMm,
+    qrTarget: target,
   });
 
   return { widthMm: BACK.widthMm, heightMm: BACK.heightMm, shapes };
@@ -226,9 +229,14 @@ export function layoutFront(input: ShirtInput, fonts: FontSet, metrics: Partial<
 export function layout(input: ShirtInput, fonts: FontSet): ShirtDesign {
   const warnings: string[] = [];
 
+  const parts = resolveQuery(input, input.title);
   const bad = unsupportedChars(
-    [input.name, input.title, input.url, input.headline, input.updated, input.chestSubject, input.chestValue]
-      .join(' '),
+    [
+      input.name, input.title, input.url, input.headline, input.updated,
+      input.chestSubject, input.chestValue,
+      parts.selectColumn, parts.table, parts.field, parts.value,
+      parts.andField, parts.andValue, parts.sortBy,
+    ].join(' '),
   );
   if (bad.length) {
     warnings.push(
@@ -239,18 +247,12 @@ export function layout(input: ShirtInput, fonts: FontSet): ShirtDesign {
   const metrics: Partial<Metrics> = { inks: input.accent.hex === WHITE.hex ? 1 : 2 };
   const back = layoutBack(input, fonts, warnings, metrics);
   const front = layoutFront(input, fonts, metrics);
-  const derived = deriveQuery(input.title);
-  const query = buildQuery({
-    table: tidy(input.table || derived.table),
-    field: tidy(input.field || derived.field),
-    value: tidy(input.value || derived.value),
-  }).map(lineText);
 
   return {
     front,
     back,
     palette: { accent: input.accent, white: WHITE },
-    query,
+    query: buildQuery(parts).map(lineText),
     metrics: metrics as Metrics,
     warnings,
     input,

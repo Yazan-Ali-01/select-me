@@ -1,6 +1,10 @@
 import {
   ACCENTS,
+  DEFAULT_SORT_COLUMN,
   EXAMPLE,
+  contrastOnGarment,
+  inkFromHex,
+  qrUrl,
   fileStem,
   layout,
   loadFonts,
@@ -19,8 +23,15 @@ import {
 
 /** Fields that travel in the share link. Anything left at its default is omitted. */
 const SHARED = [
-  'name', 'title', 'url', 'headline', 'updated',
-  'chestSubject', 'chestValue', 'table', 'field', 'value', 'ecc',
+  'name', 'title', 'url', 'qrTarget', 'headline', 'updated',
+  'chestSubject', 'chestValue',
+  'selectColumn', 'table', 'field', 'value', 'andField', 'andValue', 'sortBy',
+  'ecc',
+] as const;
+
+/** The parts of the query the inline editor writes into. */
+const QUERY_KEYS = [
+  'selectColumn', 'table', 'field', 'value', 'andField', 'andValue', 'sortBy',
 ] as const;
 
 type SharedKey = (typeof SHARED)[number];
@@ -34,8 +45,9 @@ function readUrl(): Partial<ShirtInput> {
   }
   const accent = params.get('ink');
   if (accent) {
-    const match = ACCENTS.find((a) => a.hex.toLowerCase() === `#${accent.replace('#', '').toLowerCase()}`);
-    if (match) out.accent = match;
+    const ink = inkFromHex(accent);
+    // A shared hex that matches a preset keeps the preset's measured values.
+    if (ink) out.accent = ACCENTS.find((a) => a.hex === ink.hex) ?? ink;
   }
   return out as Partial<ShirtInput>;
 }
@@ -72,6 +84,13 @@ const alerts = $('#alerts');
 const downloadBtn = $<HTMLButtonElement>('#download');
 const shareBtn = $<HTMLButtonElement>('#share');
 const inkNote = $('#ink-note');
+const qrEncodes = $('#qr-encodes');
+const colorInput = $<HTMLInputElement>('#f-color');
+const hexInput = $<HTMLInputElement>('#f-hex');
+const sortToggle = $<HTMLInputElement>('#f-sortOn');
+const qrTargetInput = $<HTMLInputElement>('#f-qrTarget');
+const sortLine = $('#q-sort-line');
+const semiAnd = $('#q-semi-and');
 const dimW = $('#dim-w');
 const dimH = $('#dim-h');
 
@@ -103,6 +122,14 @@ function paint(): void {
 
   alerts.innerHTML = design.warnings.map((w) => `<p class="alert">${escape(w)}</p>`).join('');
 
+  // Say out loud what the code will actually open, but only when that is not
+  // simply the printed link — confirming the obvious is noise.
+  const printed = qrUrl(state.url);
+  // Blank shows what it would fall back to, rather than nothing at all.
+  qrTargetInput.placeholder = printed || 'https://…';
+  const encodes = design.metrics.qrTarget;
+  qrEncodes.textContent = encodes && encodes !== printed ? `Scans open ${encodes}` : '';
+
   document.documentElement.style.setProperty('--ink', state.accent.hex);
   history.replaceState(null, '', writeUrl(state));
 }
@@ -119,13 +146,17 @@ function debounce<T extends (...args: never[]) => void>(fn: T, ms: number): T {
   }) as T;
 }
 
-const repaint = debounce(paint, 140);
+const repaint = debounce(() => {
+  paint();
+  refreshQueryEditor();
+}, 140);
 
 /* --- inputs --------------------------------------------------------------- */
 
+/** The plain text inputs. The query's parts are bound separately, by the editor. */
 const FIELDS: SharedKey[] = [
-  'name', 'title', 'url', 'headline', 'updated',
-  'chestSubject', 'chestValue', 'table', 'field', 'value', 'ecc',
+  'name', 'title', 'url', 'qrTarget', 'headline', 'updated',
+  'chestSubject', 'chestValue', 'ecc',
 ];
 
 for (const key of FIELDS) {
@@ -149,64 +180,148 @@ function setField(key: SharedKey, value: string): void {
     case 'ecc':
       state.ecc = (value || EXAMPLE.ecc) as ShirtInput['ecc'];
       return;
+    case 'selectColumn':
     case 'table':
     case 'field':
     case 'value':
+    case 'andField':
+    case 'andValue':
+      // Blank falls back to the derived or default part, shown as placeholder.
       state[key] = value || undefined;
+      return;
+    case 'qrTarget':
+    case 'sortBy':
+      state[key] = value;
       return;
     default:
       state[key] = value;
   }
 }
 
-/** Query overrides start blank so the derived value shows through as a placeholder. */
-function refreshDerivedPlaceholders(): void {
-  if (!design) return;
-  const [, second, third] = design.query;
-  const table = design.query[0]?.replace('SELECT name FROM ', '') ?? '';
-  const filter = second?.match(/^WHERE (\S+) = '(.*)'$/);
-  const set = (id: string, value: string) => {
-    const el = document.querySelector<HTMLInputElement>(id);
-    if (el && !el.value) el.placeholder = value;
-  };
-  set('#f-table', table);
-  if (filter) {
-    set('#f-field', filter[1]!);
-    set('#f-value', filter[2]!);
-  }
-  void third;
+/* --- the query, edited as the query ---------------------------------------- */
+
+const queryInputs = new Map<(typeof QUERY_KEYS)[number], HTMLInputElement>();
+
+for (const key of QUERY_KEYS) {
+  const el = document.querySelector<HTMLInputElement>(`.q-in[data-q="${key}"]`);
+  if (!el) continue;
+  queryInputs.set(key, el);
+
+  const initial = state[key];
+  if (initial) el.value = initial;
+
+  el.addEventListener('input', () => {
+    setField(key, el.value);
+    sizeToContent(el);
+    repaint();
+  });
 }
+
+/**
+ * Monospace makes the width of a field exactly the width of its contents.
+ * The extra half-character is room for the caret at the end of the word.
+ */
+function sizeToContent(el: HTMLInputElement): void {
+  const chars = Math.max((el.value || el.placeholder).length, 1);
+  el.style.width = `${chars + 0.5}ch`;
+}
+
+/**
+ * Show what each blank field would print, as its placeholder.
+ *
+ * The derived parts change whenever the job title does, so a field left blank
+ * has to keep saying what it is currently standing in for.
+ */
+function refreshQueryEditor(): void {
+  if (!design) return;
+  const printed = design.query;
+  const from = printed[0]?.match(/^SELECT (\S+) FROM (.+)$/);
+  const where = printed[1]?.match(/^WHERE (\S+) = '(.*)'$/);
+  const and = printed[2]?.match(/^ {2}AND (\S+) = (.*?);?$/);
+
+  const show = (key: (typeof QUERY_KEYS)[number], value: string | undefined) => {
+    const el = queryInputs.get(key);
+    if (!el || value === undefined) return;
+    el.placeholder = value;
+    sizeToContent(el);
+  };
+
+  show('selectColumn', from?.[1]);
+  show('table', from?.[2]);
+  show('field', where?.[1]);
+  show('value', where?.[2]);
+  show('andField', and?.[1]);
+  show('andValue', and?.[2]);
+  show('sortBy', state.sortBy || DEFAULT_SORT_COLUMN);
+
+  const sorted = Boolean(state.sortBy);
+  sortLine.hidden = !sorted;
+  // The statement ends on whichever line is last, so the semicolon moves.
+  semiAnd.hidden = sorted;
+}
+
+sortToggle.checked = Boolean(state.sortBy);
+sortToggle.addEventListener('change', () => {
+  const column = queryInputs.get('sortBy')?.value.trim();
+  state.sortBy = sortToggle.checked ? column || DEFAULT_SORT_COLUMN : '';
+  const el = queryInputs.get('sortBy');
+  if (el && sortToggle.checked && !el.value) el.value = '';
+  paint();
+  refreshQueryEditor();
+});
 
 /* --- ink shelf ------------------------------------------------------------ */
 
 const accentRow = $('#accents');
 accentRow.innerHTML = ACCENTS.map(
-  (ink, i) =>
-    `<button type="button" class="swatch${ink.hex === state.accent.hex ? ' is-on' : ''}" ` +
-    `style="--swatch:${ink.hex}" data-ink="${i}" role="radio" ` +
-    `aria-checked="${ink.hex === state.accent.hex}" aria-label="${escape(ink.name)}" title="${escape(ink.name)}"></button>`,
+  (ink) =>
+    `<button type="button" class="swatch" style="--swatch:${ink.hex}" ` +
+    `data-hex="${ink.hex}" role="radio" aria-checked="false" ` +
+    `aria-label="${escape(ink.name)}" title="${escape(ink.name)}"></button>`,
 ).join('');
 
 function describeInk(ink: Ink): string {
   const cmyk = ink.cmyk.map((v) => Math.round(v * 100)).join('/');
-  return ink.pantone
+  const base = ink.pantone
     ? `${ink.name} — ${ink.hex}, Pantone ${ink.pantone}, CMYK ${cmyk}`
     : `${ink.name} — ${ink.hex}, CMYK ${cmyk}`;
+  // A dark ink on a dark shirt disappears on fabric long before it does on screen.
+  return contrastOnGarment(ink.hex, garment) < 3
+    ? `${base}. This is dark for a black shirt — it will be hard to read.`
+    : base;
+}
+
+/** Reflect the current ink across the shelf, the picker and the hex field. */
+function showInk(): void {
+  for (const el of accentRow.querySelectorAll<HTMLElement>('.swatch')) {
+    const on = el.dataset.hex === state.accent.hex;
+    el.classList.toggle('is-on', on);
+    el.setAttribute('aria-checked', String(on));
+  }
+  colorInput.value = state.accent.hex;
+  if (hexInput.value.toUpperCase() !== state.accent.hex) hexInput.value = state.accent.hex;
+  inkNote.textContent = describeInk(state.accent);
+}
+
+function setAccent(value: string): void {
+  const ink = inkFromHex(value);
+  if (!ink) return;
+  // A hex that matches a preset keeps the preset's measured CMYK and Pantone.
+  state.accent = ACCENTS.find((a) => a.hex === ink.hex) ?? ink;
+  showInk();
+  paint();
 }
 
 accentRow.addEventListener('click', (event) => {
   const btn = (event.target as HTMLElement).closest<HTMLButtonElement>('.swatch');
-  if (!btn) return;
-  state.accent = ACCENTS[Number(btn.dataset.ink)]!;
-  for (const el of accentRow.querySelectorAll('.swatch')) {
-    const on = el === btn;
-    el.classList.toggle('is-on', on);
-    el.setAttribute('aria-checked', String(on));
-  }
-  inkNote.textContent = describeInk(state.accent);
-  paint();
+  if (btn?.dataset.hex) setAccent(btn.dataset.hex);
 });
-inkNote.textContent = describeInk(state.accent);
+
+colorInput.addEventListener('input', () => setAccent(colorInput.value));
+hexInput.addEventListener('input', () => {
+  if (inkFromHex(hexInput.value)) setAccent(hexInput.value);
+});
+hexInput.addEventListener('blur', () => showInk());
 
 /* --- placement and garment ------------------------------------------------ */
 
@@ -348,8 +463,9 @@ npx?.addEventListener('click', async () => {
       if (!response.ok) throw new Error(`Could not load ${file}`);
       return response.arrayBuffer();
     });
+    showInk();
     paint();
-    refreshDerivedPlaceholders();
+    refreshQueryEditor();
   } catch {
     cloth.dataset.loading = 'false';
     alerts.innerHTML =

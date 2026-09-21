@@ -7,13 +7,16 @@ import { stdin, stdout } from 'node:process';
 
 import {
   ACCENTS,
+  DEFAULT_SORT_COLUMN,
   EXAMPLE,
   fileStem,
+  inkFromHex,
   layout,
   loadFonts,
   toPdf,
   toSpecSheetPdf,
   toSvg,
+  qrUrl,
   type Ink,
   type ShirtInput,
 } from './core/index.js';
@@ -32,18 +35,30 @@ const HELP = `
   Options
     --name <string>        Printed under the rule.
     --title <string>       Job title. Sets the kicker and seeds the query.
-    --url <string>         Printed, and encoded into the QR tile.
+    --url <string>         Printed under the rule.
+    --qr <string>          What the QR points at, if not the printed link.
 
     --headline <string>    The big line. Default: "${EXAMPLE.headline}"
     --updated <string>     Trailing comment. Default: "${EXAMPLE.updated}"
     --chest <string>       Chest subject. Default: "${EXAMPLE.chestSubject}"
     --chest-value <string> Chest value. Default: "${EXAMPLE.chestValue}"
 
-    --table <string>       Override the derived table name.
-    --field <string>       Override the derived filter column.
-    --value <string>       Override the derived filter value.
+  The query — every identifier and literal is yours
+    SELECT {select} FROM {table}
+    WHERE {field} = '{value}'
+      AND {and-field} = {and-value}
+    ORDER BY {sort} DESC LIMIT 1;
 
-    --accent <name|hex>    ${ACCENTS.map((a) => a.name.toLowerCase().split(' ')[0]).join(', ')}, or #RRGGBB.
+    --select <string>      Selected column. Default: "name"
+    --table <string>       Table name. Default: derived from the title.
+    --field <string>       Filter column. Default: derived from the title.
+    --value <string>       Filter value. Default: derived from the title.
+    --and-field <string>   Second filter column. Default: "available"
+    --and-value <string>   Second filter value. Default: "true"
+    --sort [<string>]      Add the sort line, ordering by this column.
+                           Bare --sort uses "${DEFAULT_SORT_COLUMN}".
+
+    --accent <name|hex>    ${ACCENTS.map((a) => a.name.toLowerCase().split(' ')[0]).join(', ')}, or any hex.
     --ecc <L|M|Q|H>        QR error correction. Default: Q.
     --out <dir>            Output directory. Default: ./<your-name>-shirt
 
@@ -76,32 +91,18 @@ const str = (v: string | true | undefined): string | undefined =>
 /** Accept an accent by name or as a raw hex, because people will paste a hex. */
 function resolveAccent(value: string | undefined): Ink {
   if (!value) return EXAMPLE.accent;
-  const hex = value.trim();
-  if (/^#?[0-9a-f]{6}$/i.test(hex)) {
-    const normalized = `#${hex.replace('#', '').toUpperCase()}`;
-    const known = ACCENTS.find((a) => a.hex === normalized);
-    if (known) return known;
-    return { hex: normalized, cmyk: hexToCmyk(normalized), name: 'Custom' };
+  const custom = inkFromHex(value);
+  if (custom) {
+    // A hex that matches a preset keeps the preset's measured CMYK and Pantone.
+    return ACCENTS.find((a) => a.hex === custom.hex) ?? custom;
   }
-  const match = ACCENTS.find((a) => a.name.toLowerCase().startsWith(hex.toLowerCase()));
+  const match = ACCENTS.find((a) => a.name.toLowerCase().startsWith(value.trim().toLowerCase()));
   if (!match) {
-    throw new Error(`Unknown accent "${value}". Try one of: ${ACCENTS.map((a) => a.name).join(', ')}.`);
+    throw new Error(
+      `Unknown accent "${value}". Try a hex like #FFAE3D, or one of: ${ACCENTS.map((a) => a.name).join(', ')}.`,
+    );
   }
   return match;
-}
-
-/**
- * Naive RGB to CMYK. It is the same conversion a shop's RIP would do, and it is
- * honest about being a starting point rather than a colour-managed match.
- */
-function hexToCmyk(hex: string): [number, number, number, number] {
-  const int = Number.parseInt(hex.slice(1), 16);
-  const r = ((int >> 16) & 255) / 255;
-  const g = ((int >> 8) & 255) / 255;
-  const b = (int & 255) / 255;
-  const k = 1 - Math.max(r, g, b);
-  if (k === 1) return [0, 0, 0, 1];
-  return [(1 - r - k) / (1 - k), (1 - g - k) / (1 - k), (1 - b - k) / (1 - k), k];
 }
 
 async function ask(): Promise<Pick<ShirtInput, 'name' | 'title' | 'url'>> {
@@ -137,9 +138,15 @@ async function main(): Promise<void> {
     updated: str(args.updated) ?? EXAMPLE.updated,
     chestSubject: str(args.chest) ?? EXAMPLE.chestSubject,
     chestValue: str(args['chest-value']) ?? EXAMPLE.chestValue,
+    qrTarget: str(args.qr) ?? '',
+    selectColumn: str(args.select),
     table: str(args.table),
     field: str(args.field),
     value: str(args.value),
+    andField: str(args['and-field']),
+    andValue: str(args['and-value']),
+    // Bare --sort turns the line on without naming a column.
+    sortBy: args.sort === true ? DEFAULT_SORT_COLUMN : (str(args.sort) ?? ''),
     accent: resolveAccent(str(args.accent)),
     ecc: (str(args.ecc)?.toUpperCase() as ShirtInput['ecc']) ?? EXAMPLE.ecc,
   };
@@ -170,6 +177,9 @@ async function main(): Promise<void> {
   for (const [file, body] of files) await writeFile(join(dir, file), body);
 
   stdout.write(`\n  ${design.query.join('\n  ')}\n\n`);
+  if (design.metrics.qrTarget !== qrUrl(input.url)) {
+    stdout.write(`  QR points at ${design.metrics.qrTarget}\n\n`);
+  }
   for (const warning of design.warnings) stdout.write(`  ! ${warning}\n`);
   if (design.warnings.length) stdout.write('\n');
   stdout.write(`  Wrote ${files.length} files to ${dir}\n`);

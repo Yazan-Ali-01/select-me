@@ -84,12 +84,22 @@ export const BACK = {
   kickerBaseline: 14,
   headlineBaseline: 50,
   codeBaseline: 78,
-  /** Leading between the three lines of the query. */
+  /** Leading between the lines of the query. */
   codeLeading: 14,
 
-  rule: { y: 113, heightMm: 1.1 },
+  /**
+   * The rule and the name hang off the *last* line of the query rather than
+   * sitting at fixed heights, so turning the sort line on pushes them down by
+   * exactly one line instead of colliding with it. The link and the comment
+   * stay anchored to the bottom edge, and the name floats in between.
+   *
+   * With three query lines these gaps reproduce the original exactly:
+   * 106 + 7 = 113 for the rule, 113 + 18 = 131 for the name.
+   */
+  ruleGap: 7,
+  rule: { heightMm: 1.1 },
 
-  nameBaseline: 131,
+  nameGap: 18,
   nameSizeMm: 14,
 
   urlBaseline: 160,

@@ -35,6 +35,21 @@ const CASES = [
   ['a long chest line', { chestSubject: 'currently_interviewing', chestValue: 'absolutely' }],
   ['descenders everywhere', { name: 'Jppy Gygy', headline: 'Pay pygmy.', chestValue: 'jayyy' }],
   ['empty everything', { name: '', title: '', url: '', headline: '', chestSubject: '', chestValue: '' }],
+
+  // The sort line adds a fourth query line, which moves the rule and the name
+  // down a whole 14 mm. Everything below them has to still fit.
+  ['the sort line', { sortBy: 'fit' }],
+  ['the sort line and a long name', { sortBy: 'fit', name: 'Alexandra Papadopoulos-Whitfield' }],
+  ['the sort line and a descending name', { sortBy: 'fit', name: 'Jayjay Gregory' }],
+  ['the sort line and a long link', { sortBy: 'experience', url: 'example.com/a/long/portfolio/path' }],
+  ['a long sort column', { sortBy: 'years_of_relevant_experience' }],
+  ['every part replaced', {
+    selectColumn: 'id', table: 'humans', field: 'stack', value: 'typescript',
+    andField: 'notice_days', andValue: '0', sortBy: 'experience',
+  }],
+  ['a one-character query', {
+    selectColumn: 'a', table: 'b', field: 'c', value: 'd', andField: 'e', andValue: 'f', sortBy: 'g',
+  }],
 ];
 
 for (const [label, overrides] of CASES) {

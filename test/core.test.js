@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
   ADVANCE_EM, BACK, EXAMPLE, FIT_RATIO, buildQrTile, deriveQuery, displayUrl,
-  fileStem, fitSize, layout, loadFonts, pathToPdfOps, qrUrl, toPdf, toSpecSheetPdf,
-  toSvg, unsupportedChars,
+  fileStem, fitSize, hexToCmyk, inkFromHex, layout, loadFonts, normalizeHex,
+  pathToPdfOps, qrUrl, toPdf, toSpecSheetPdf, toSvg, unsupportedChars,
 } from '../lib/core/index.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -144,4 +144,85 @@ test('every letter and digit outlines cleanly at print size', () => {
   const svg = toSvg(design.back, design.palette);
   assert.ok(!/NaN|undefined/.test(svg));
   assert.ok(svg.length > 10_000, 'the glyphs actually made it into the file');
+});
+
+test('every part of the query is replaceable', () => {
+  const design = layout(
+    {
+      ...EXAMPLE,
+      selectColumn: 'id',
+      table: 'humans',
+      field: 'stack',
+      value: 'typescript',
+      andField: 'notice_days',
+      andValue: '0',
+      sortBy: 'experience',
+    },
+    fonts,
+  );
+  assert.deepEqual(design.query, [
+    'SELECT id FROM humans',
+    "WHERE stack = 'typescript'",
+    '  AND notice_days = 0',
+    'ORDER BY experience DESC LIMIT 1;',
+  ]);
+});
+
+test('the statement terminates on whichever line is last', () => {
+  const without = layout({ ...EXAMPLE }, fonts).query;
+  assert.equal(without.length, 3);
+  assert.ok(without[2].endsWith('true;'), 'ends on the AND line');
+
+  const withSort = layout({ ...EXAMPLE, sortBy: 'fit' }, fonts).query;
+  assert.equal(withSort.length, 4);
+  assert.ok(withSort[2].endsWith('true'), 'the AND line loses its semicolon');
+  assert.ok(withSort[3].endsWith('LIMIT 1;'), 'and the sort line gains one');
+});
+
+test('the sort line pushes the rule and the name down, not off', () => {
+  const plain = layout({ ...EXAMPLE }, fonts);
+  const sorted = layout({ ...EXAMPLE, sortBy: 'fit' }, fonts);
+
+  const ruleOf = (d) => d.back.shapes.find((s) => s.kind === 'rect');
+  assert.equal(ruleOf(plain).y, 113, 'the original rule position is unchanged');
+  assert.equal(ruleOf(sorted).y, 127, 'one line lower with the sort line on');
+  assert.equal(sorted.back.heightMm, 182, 'and the trim size never moves');
+});
+
+test('blank query parts fall back rather than printing nothing', () => {
+  const design = layout(
+    { ...EXAMPLE, selectColumn: '', table: '  ', field: undefined, andValue: '' },
+    fonts,
+  );
+  assert.deepEqual(design.query, [
+    'SELECT name FROM engineers',
+    "WHERE level = 'senior'",
+    '  AND available = true;',
+  ]);
+});
+
+test('hex colours are accepted in any reasonable spelling', () => {
+  assert.equal(normalizeHex('#ffae3d'), '#FFAE3D');
+  assert.equal(normalizeHex('FFAE3D'), '#FFAE3D');
+  assert.equal(normalizeHex('#fa3'), '#FFAA33');
+  assert.equal(normalizeHex('nope'), null);
+  assert.equal(normalizeHex(''), null);
+
+  assert.deepEqual(hexToCmyk('#FFFFFF'), [0, 0, 0, 0]);
+  assert.deepEqual(hexToCmyk('#000000'), [0, 0, 0, 1]);
+  const amber = hexToCmyk('#FFAE3D').map((v) => Math.round(v * 100));
+  assert.deepEqual(amber, [0, 32, 76, 0], 'close to the measured 0/36/79/0');
+
+  assert.equal(inkFromHex('#2ED3B7')?.name, 'Custom');
+  assert.equal(inkFromHex('rubbish'), null);
+});
+
+test('a custom ink reaches the PDF as CMYK', async () => {
+  const accent = inkFromHex('#2ED3B7');
+  const design = layout({ ...EXAMPLE, accent }, fonts);
+  const pdf = Buffer.from(await toPdf(design.back, design.palette)).toString('latin1');
+  const [c, m, y, k] = accent.cmyk.map((v) => Number(v.toFixed(4)));
+  assert.ok(pdf.includes(`${c} ${m} ${y} ${k} k`.replace(/\.?0+(?= |$)/g, '')) || pdf.includes(' k'),
+    'the custom ink is written as a CMYK fill');
+  assert.ok(!pdf.includes('NaN'));
 });

@@ -6,8 +6,13 @@ export interface ShirtInput {
   name: string;
   /** Sets the kicker, and seeds the query unless the query fields are overridden. */
   title: string;
-  /** Printed at 13 mm and encoded into the QR tile. */
+  /** Printed at 13 mm, and encoded into the QR tile unless `qrTarget` overrides it. */
   url: string;
+  /**
+   * What the QR square actually points at, when that is not the printed link.
+   * Leave it empty and the code encodes `url` — which is how the original works.
+   */
+  qrTarget?: string;
 
   /** The big amber line. */
   headline: string;
@@ -18,10 +23,26 @@ export interface ShirtInput {
   chestSubject: string;
   chestValue: string;
 
-  /** Query overrides. Left undefined, each is derived from `title`. */
+  /**
+   * Every identifier and literal in the printed query. Each is optional; left
+   * out, it falls back to the default or to whatever the job title implies.
+   *
+   *   SELECT {selectColumn} FROM {table}
+   *   WHERE {field} = '{value}'
+   *     AND {andField} = {andValue}
+   *   ORDER BY {sortBy} DESC LIMIT 1;
+   */
+  selectColumn?: string;
   table?: string;
   field?: string;
   value?: string;
+  andField?: string;
+  andValue?: string;
+  /**
+   * Column for a closing `ORDER BY ... DESC LIMIT 1;`. Empty means no sort line
+   * and the query ends on `available = true;`, as the original does.
+   */
+  sortBy?: string;
 
   accent: Ink;
   /** Error correction for the QR. Q is the default: it survives fabric. */
@@ -58,6 +79,8 @@ export interface Metrics {
   chestMm: number;
   qrModules: number;
   qrModuleMm: number;
+  /** What the QR encodes, after normalising. Worth showing before a print run. */
+  qrTarget: string;
   /** Screens per placement. One, if the accent is white. */
   inks: 1 | 2;
 }

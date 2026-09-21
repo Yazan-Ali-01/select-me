@@ -46,6 +46,16 @@ Everything is at exact final size. Nothing needs scaling.
 - **The QR is a knockout.** Its dark modules are unprinted and the garment shows
   through. The spec sheet says so in the largest words on the page, because
   filling them in is the one mistake that stops the code scanning.
+- **Any ink you like.** Six presets carry measured CMYK and a Pantone reference;
+  any other hex is converted and labelled as converted, so nobody mistakes a
+  screen colour for a matched one. A dark accent on a dark shirt gets a warning.
+
+### The QR does not have to match the printed link
+
+Leave it alone and the code points at the link printed under your name — that is
+how the original works. Set it separately and the printed line can stay readable
+while scans go somewhere longer: a booking page, a CV, a tracked URL. The tool
+tells you what the code will actually open before you download anything.
 
 ## Use it
 
@@ -68,7 +78,9 @@ npx select-me \
   --name "Ada Lovelace" \
   --title "Staff Data Scientist" \
   --url "ada.dev/hire" \
-  --accent mint \
+  --qr "https://cal.com/ada/30min" \
+  --sort \
+  --accent "#2ED3B7" \
   --out ./artwork
 ```
 
@@ -113,14 +125,19 @@ The design is a grid of fixed baselines and one sizing rule.
  78 │ SELECT name FROM engineers          ┌───────────┐ │
  92 │ WHERE level = 'senior'              │           │ │
 106 │   AND available = true;             │  QR tile  │ │
-113 │ ───────────────────────             │   76 mm   │ │
-131 │ Your Name                           └───────────┘ │
+    │ ( ORDER BY fit DESC LIMIT 1; )      │   76 mm   │ │
+113 │ ───────────────────────             └───────────┘ │
+131 │ Your Name                                         │
     │                                                   │
 160 │ your-link.example                                 │
 175 │ -- last updated: today                            │
 182 └───────────────────────────────────────────────────┘
     0                                  171.6   194   270
 ```
+
+The sort line is optional. With it on, the rule and the name hang off it
+instead — one line lower — while the link and the comment stay anchored to the
+bottom edge. Nothing else moves, and the trim size never changes.
 
 Baselines never move. Type sizes are computed:
 
@@ -145,6 +162,20 @@ may leave the print area, for any input.
 Literals in the query print in the accent ink and everything else prints in
 white. That is the entire syntax highlighter, and two inks is all a screen
 printer gets.
+
+Every identifier and literal in the statement is yours:
+
+```
+SELECT {selectColumn} FROM {table}
+WHERE {field} = '{value}'
+  AND {andField} = {andValue}
+ORDER BY {sortBy} DESC LIMIT 1;
+```
+
+`table`, `field` and `value` default to whatever the job title implies;
+the rest default to `name`, `available` and `true`. Leave any of them blank and
+the default shows through. The web tool edits them in place, in the query
+itself, rather than in a column of labelled boxes.
 
 ## Development
 
