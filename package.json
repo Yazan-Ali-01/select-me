@@ -26,7 +26,7 @@
   },
   "type": "module",
   "bin": {
-    "select-me": "./lib/cli.js"
+    "select-me": "lib/cli.js"
   },
   "main": "./lib/core/index.js",
   "types": "./lib/core/index.d.ts",
