@@ -1,6 +1,6 @@
 {
   "name": "select-me",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Generate a print-ready job-hunt shirt from one SQL query. Two inks, two placements, vector output.",
   "keywords": [
     "shirt",
