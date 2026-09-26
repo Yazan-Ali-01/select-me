@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { inflateSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  ADVANCE_EM, BACK, EXAMPLE, FIT_RATIO, buildQrTile, deriveQuery, displayUrl,
+  ADVANCE_EM, BACK, DEFAULTS, FIT_RATIO, buildQrTile, deriveQuery, displayUrl,
   fileStem, fitSize, hexToCmyk, inkFromHex, layout, loadFonts, normalizeHex,
   pathToPdfOps, qrUrl, toPdf, toSpecSheetPdf, toSvg, unsupportedChars,
 } from '../lib/core/index.js';
@@ -48,7 +49,7 @@ test('URLs are trimmed for print but absolute for the QR', () => {
 });
 
 test('characters outside the font subset are reported, not silently dropped', () => {
-  assert.deepEqual(unsupportedChars('Yazan Ali'), []);
+  assert.deepEqual(unsupportedChars('Ada Lovelace'), []);
   assert.deepEqual(unsupportedChars('Zoë Ström'), []);
   assert.deepEqual(unsupportedChars('山田'), ['山', '田']);
 });
@@ -72,7 +73,7 @@ test('path translation handles every command the renderers emit', () => {
 });
 
 test('a generated PDF is structurally sound', async () => {
-  const design = layout({ ...EXAMPLE }, fonts);
+  const design = layout({ ...DEFAULTS }, fonts);
   const bytes = await toPdf(design.back, design.palette, { title: 'test' });
   const text = Buffer.from(bytes).toString('latin1');
 
@@ -96,7 +97,7 @@ test('a generated PDF is structurally sound', async () => {
 });
 
 test('the spec sheet is one A4 page', async () => {
-  const design = layout({ ...EXAMPLE }, fonts);
+  const design = layout({ ...DEFAULTS }, fonts);
   const text = Buffer.from(await toSpecSheetPdf(design, fonts)).toString('latin1');
   assert.match(text, /\/Count 1/);
   const box = text.match(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/);
@@ -106,7 +107,7 @@ test('the spec sheet is one A4 page', async () => {
 
 test('long input warns instead of printing a smudge', () => {
   const design = layout(
-    { ...EXAMPLE, title: 'Senior Staff Distinguished Principal Software Reliability Engineer II' },
+    { ...DEFAULTS, title: 'Senior Staff Distinguished Principal Software Reliability Engineer II' },
     fonts,
   );
   assert.ok(design.warnings.length === 0 || design.warnings.every((w) => typeof w === 'string'));
@@ -115,13 +116,13 @@ test('long input warns instead of printing a smudge', () => {
 });
 
 test('an empty-ish input still produces both placements', () => {
-  const design = layout({ ...EXAMPLE, name: '', title: '', url: '' }, fonts);
+  const design = layout({ ...DEFAULTS, name: '', title: '', url: '' }, fonts);
   assert.ok(design.front.shapes.length > 0);
   assert.ok(design.back.shapes.length > 0);
 });
 
 test('filenames are slugged safely', () => {
-  assert.equal(fileStem('Yazan Ali'), 'yazan-ali');
+  assert.equal(fileStem('Ada Lovelace'), 'ada-lovelace');
   assert.equal(fileStem('Zoë  Ström'), 'zoe-strom');
   assert.equal(fileStem('!!!'), 'shirt');
 });
@@ -129,7 +130,7 @@ test('filenames are slugged safely', () => {
 test('no generated output ever contains a non-finite coordinate', async () => {
   // opentype.js 2.0.0 emits a literal NaN from its own path serialiser on
   // multi-glyph paths. A raster previewer skips it; a print RIP does not.
-  const design = layout({ ...EXAMPLE, name: 'Yazan Ali' }, fonts);
+  const design = layout({ ...DEFAULTS, name: 'Jos\u00e9 Álvarez-Núñez' }, fonts);
   for (const [label, drawing] of [['front', design.front], ['back', design.back]]) {
     const svg = toSvg(drawing, design.palette);
     assert.ok(!/NaN|undefined|Infinity/.test(svg), `${label} SVG has a bad number`);
@@ -140,7 +141,7 @@ test('no generated output ever contains a non-finite coordinate', async () => {
 
 test('every letter and digit outlines cleanly at print size', () => {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const design = layout({ ...EXAMPLE, name: alphabet.slice(0, 26), title: alphabet.toUpperCase() }, fonts);
+  const design = layout({ ...DEFAULTS, name: alphabet.slice(0, 26), title: alphabet.toUpperCase() }, fonts);
   const svg = toSvg(design.back, design.palette);
   assert.ok(!/NaN|undefined/.test(svg));
   assert.ok(svg.length > 10_000, 'the glyphs actually made it into the file');
@@ -149,7 +150,7 @@ test('every letter and digit outlines cleanly at print size', () => {
 test('every part of the query is replaceable', () => {
   const design = layout(
     {
-      ...EXAMPLE,
+      ...DEFAULTS,
       selectColumn: 'id',
       table: 'humans',
       field: 'stack',
@@ -169,19 +170,19 @@ test('every part of the query is replaceable', () => {
 });
 
 test('the statement terminates on whichever line is last', () => {
-  const without = layout({ ...EXAMPLE }, fonts).query;
+  const without = layout({ ...DEFAULTS }, fonts).query;
   assert.equal(without.length, 3);
   assert.ok(without[2].endsWith('true;'), 'ends on the AND line');
 
-  const withSort = layout({ ...EXAMPLE, sortBy: 'fit' }, fonts).query;
+  const withSort = layout({ ...DEFAULTS, sortBy: 'fit' }, fonts).query;
   assert.equal(withSort.length, 4);
   assert.ok(withSort[2].endsWith('true'), 'the AND line loses its semicolon');
   assert.ok(withSort[3].endsWith('LIMIT 1;'), 'and the sort line gains one');
 });
 
 test('the sort line pushes the rule and the name down, not off', () => {
-  const plain = layout({ ...EXAMPLE }, fonts);
-  const sorted = layout({ ...EXAMPLE, sortBy: 'fit' }, fonts);
+  const plain = layout({ ...DEFAULTS }, fonts);
+  const sorted = layout({ ...DEFAULTS, sortBy: 'fit' }, fonts);
 
   const ruleOf = (d) => d.back.shapes.find((s) => s.kind === 'rect');
   assert.equal(ruleOf(plain).y, 113, 'the original rule position is unchanged');
@@ -191,7 +192,7 @@ test('the sort line pushes the rule and the name down, not off', () => {
 
 test('blank query parts fall back rather than printing nothing', () => {
   const design = layout(
-    { ...EXAMPLE, selectColumn: '', table: '  ', field: undefined, andValue: '' },
+    { ...DEFAULTS, selectColumn: '', table: '  ', field: undefined, andValue: '' },
     fonts,
   );
   assert.deepEqual(design.query, [
@@ -217,12 +218,27 @@ test('hex colours are accepted in any reasonable spelling', () => {
   assert.equal(inkFromHex('rubbish'), null);
 });
 
-test('a custom ink reaches the PDF as CMYK', async () => {
+test('a custom ink reaches the PDF as a CMYK fill', async () => {
   const accent = inkFromHex('#2ED3B7');
-  const design = layout({ ...EXAMPLE, accent }, fonts);
-  const pdf = Buffer.from(await toPdf(design.back, design.palette)).toString('latin1');
-  const [c, m, y, k] = accent.cmyk.map((v) => Number(v.toFixed(4)));
-  assert.ok(pdf.includes(`${c} ${m} ${y} ${k} k`.replace(/\.?0+(?= |$)/g, '')) || pdf.includes(' k'),
-    'the custom ink is written as a CMYK fill');
-  assert.ok(!pdf.includes('NaN'));
+  const design = layout({ ...DEFAULTS, accent }, fonts);
+  const bytes = await toPdf(design.back, design.palette);
+
+  // The content stream is Flate-compressed, so searching the raw file for the
+  // operator finds it only by luck. Inflate it and look at the real operators.
+  const raw = Buffer.from(bytes).toString('latin1');
+  const start = raw.indexOf('stream\n') + 7;
+  const end = raw.indexOf('\nendstream');
+  const content = inflateSync(Buffer.from(raw.slice(start, end), 'latin1')).toString('latin1');
+
+  const fills = [...content.matchAll(/^([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) k$/gm)]
+    .map((m) => m.slice(1, 5).map(Number));
+  assert.ok(fills.length >= 2, 'the page sets a fill colour per ink');
+
+  const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) < 0.001);
+  assert.ok(
+    fills.some((f) => near(f, accent.cmyk)),
+    `no fill matches the custom ink ${JSON.stringify(accent.cmyk)}; got ${JSON.stringify(fills)}`,
+  );
+  assert.ok(fills.some((f) => near(f, [0, 0, 0, 0])), 'and white is still written as CMYK zero');
+  assert.ok(!content.includes('NaN'));
 });

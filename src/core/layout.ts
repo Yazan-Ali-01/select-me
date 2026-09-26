@@ -1,4 +1,4 @@
-import { BACK, FRONT, MIN_TYPE_MM, WHITE } from './spec.js';
+import { BACK, FRONT, MIN_TYPE_MM, PLACEHOLDER, WHITE } from './spec.js';
 import { ascenderEm, inkBox, runToPath, type FontSet } from './fonts.js';
 import { buildQuery, lineText, resolveQuery, type Segment } from './query.js';
 import { buildQrTile } from './qr.js';
@@ -47,10 +47,11 @@ export function layoutBack(
   const shapes: Shape[] = [];
   const col = BACK.columnMm;
 
-  const kicker = tidy(input.title).toUpperCase();
+  // An empty field stands in rather than leaving a hole in the artwork.
+  const kicker = (tidy(input.title) || PLACEHOLDER.title).toUpperCase();
   const headline = tidy(input.headline).toUpperCase();
-  const name = tidy(input.name);
-  const url = displayUrl(input.url);
+  const name = tidy(input.name) || PLACEHOLDER.name;
+  const url = displayUrl(input.url) || PLACEHOLDER.url;
   const comment = `-- last updated: ${tidy(input.updated)}`;
 
   // Display lines fill the full trim width; the rest live in the type column.
@@ -86,7 +87,7 @@ export function layoutBack(
 
   // One size for every query line — a code block with mixed sizes is not a
   // code block — set from the longest line against the type column.
-  const query = buildQuery(resolveQuery(input, input.title));
+  const query = buildQuery(resolveQuery(input, kicker));
   const longest = Math.max(...query.map((l) => lineText(l).length));
   const codeBox = inkBox(fonts[500], query.map(lineText).join(''));
   const codeSize = Math.min(
@@ -125,7 +126,7 @@ export function layoutBack(
     }),
   );
 
-  const target = qrUrl(tidy(input.qrTarget || '') || input.url);
+  const target = qrUrl(tidy(input.qrTarget || '') || tidy(input.url) || PLACEHOLDER.url);
   const tile = buildQrTile(target, {
     x: BACK.qr.x,
     y: BACK.qr.y,
@@ -229,7 +230,7 @@ export function layoutFront(input: ShirtInput, fonts: FontSet, metrics: Partial<
 export function layout(input: ShirtInput, fonts: FontSet): ShirtDesign {
   const warnings: string[] = [];
 
-  const parts = resolveQuery(input, input.title);
+  const parts = resolveQuery(input, tidy(input.title) || PLACEHOLDER.title);
   const bad = unsupportedChars(
     [
       input.name, input.title, input.url, input.headline, input.updated,

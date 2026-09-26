@@ -14,32 +14,39 @@ export * from './zip.js';
 export * from './color.js';
 export { drawOnCanvas, toPngBlob } from './png.js';
 
-import { AMBER, ACCENTS } from './spec.js';
+import { AMBER, ACCENTS, PLACEHOLDER } from './spec.js';
 import type { ShirtInput } from './types.js';
 
-/** The design that started this, used as the placeholder set in the UI and the CLI. */
-export const EXAMPLE: ShirtInput = {
-  name: 'Yazan Ali',
-  title: 'Senior Software Engineer',
-  url: 'yazan-ali.net/hi',
-  // Empty: the code points at the printed link, which is how the original works.
+/**
+ * What the tool stands in for while the fields are still empty.
+ *
+ * These are placeholders, not anybody's details: the point is that the preview
+ * looks like a finished shirt the moment the page loads, and that every one of
+ * these words is obviously yours to replace. The job title is left as a real
+ * one because it is what makes the derived query read like a query.
+ */
+export const DEFAULTS: ShirtInput = {
+  name: PLACEHOLDER.name,
+  title: PLACEHOLDER.title,
+  url: PLACEHOLDER.url,
+  // Empty: the code points at the printed link.
   qrTarget: '',
   headline: 'Your next hire.',
   updated: 'today',
   chestSubject: 'available',
   chestValue: 'true',
-  // Off by default, so the default design stays the shirt this came from.
+  // Off by default, so the query ends on the line that matters.
   sortBy: '',
   accent: AMBER,
   ecc: 'Q',
 };
 
+export function normalizeInput(partial: Partial<ShirtInput>): ShirtInput {
+  return { ...DEFAULTS, ...partial, accent: partial.accent ?? AMBER };
+}
+
 /** What the sort line uses when someone turns it on without naming a column. */
 export const DEFAULT_SORT_COLUMN = 'fit';
-
-export function normalizeInput(partial: Partial<ShirtInput>): ShirtInput {
-  return { ...EXAMPLE, ...partial, accent: partial.accent ?? AMBER };
-}
 
 export { ACCENTS };
 

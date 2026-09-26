@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import jsQR from 'jsqr';
 
-import { EXAMPLE, layout, loadFonts, toSvg } from '../lib/core/index.js';
+import { DEFAULTS, layout, loadFonts, toSvg } from '../lib/core/index.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const fonts = await loadFonts(async (file) => {
@@ -54,15 +54,15 @@ function decodeQrFromSvg(svg, { scale = 6 } = {}) {
 }
 
 test('the printed QR decodes to the link', () => {
-  const design = layout({ ...EXAMPLE, url: 'yazan-ali.net/hi' }, fonts);
+  const design = layout({ ...DEFAULTS, url: 'example.com/hi' }, fonts);
   const result = decodeQrFromSvg(toSvg(design.back, design.palette));
   assert.ok(result, 'a decoder found a code in the artwork');
-  assert.equal(result.data, 'https://yazan-ali.net/hi', 'and it points at the right place');
+  assert.equal(result.data, 'https://example.com/hi', 'and it points at the right place');
 });
 
 test('every error-correction level still scans', () => {
   for (const ecc of ['L', 'M', 'Q', 'H']) {
-    const design = layout({ ...EXAMPLE, url: 'https://example.com/portfolio', ecc }, fonts);
+    const design = layout({ ...DEFAULTS, url: 'https://example.com/portfolio', ecc }, fonts);
     const result = decodeQrFromSvg(toSvg(design.back, design.palette));
     assert.ok(result, `${ecc} produced a scannable code`);
     assert.equal(result.data, 'https://example.com/portfolio', `${ecc} decoded correctly`);
@@ -71,7 +71,7 @@ test('every error-correction level still scans', () => {
 
 test('a long link still scans, at a smaller module', () => {
   const url = 'https://example.com/a-really-quite-long-portfolio-address/with/deep/paths';
-  const design = layout({ ...EXAMPLE, url }, fonts);
+  const design = layout({ ...DEFAULTS, url }, fonts);
   const result = decodeQrFromSvg(toSvg(design.back, design.palette), { scale: 6 });
   assert.ok(result, 'still scannable');
   assert.equal(result.data, url);
@@ -79,19 +79,19 @@ test('a long link still scans, at a smaller module', () => {
 });
 
 test('an email address becomes a mailto code', () => {
-  const design = layout({ ...EXAMPLE, url: 'hello@example.com' }, fonts);
+  const design = layout({ ...DEFAULTS, url: 'hello@example.com' }, fonts);
   const result = decodeQrFromSvg(toSvg(design.back, design.palette));
   assert.equal(result?.data, 'mailto:hello@example.com');
 });
 
 test('the QR can point somewhere other than the printed link', () => {
   const design = layout(
-    { ...EXAMPLE, url: 'yazan-ali.net/hi', qrTarget: 'https://cal.com/yazan/30min' },
+    { ...DEFAULTS, url: 'example.com/hi', qrTarget: 'https://cal.com/someone/30min' },
     fonts,
   );
   const result = decodeQrFromSvg(toSvg(design.back, design.palette));
-  assert.equal(result?.data, 'https://cal.com/yazan/30min', 'the code follows the override');
-  assert.equal(design.metrics.qrTarget, 'https://cal.com/yazan/30min');
+  assert.equal(result?.data, 'https://cal.com/someone/30min', 'the code follows the override');
+  assert.equal(design.metrics.qrTarget, 'https://cal.com/someone/30min');
 
   const svg = toSvg(design.back, design.palette);
   assert.ok(svg.length > 0);
@@ -99,13 +99,13 @@ test('the QR can point somewhere other than the printed link', () => {
 
 test('an empty override falls back to the printed link', () => {
   for (const qrTarget of ['', '   ', undefined]) {
-    const design = layout({ ...EXAMPLE, url: 'yazan-ali.net/hi', qrTarget }, fonts);
+    const design = layout({ ...DEFAULTS, url: 'example.com/hi', qrTarget }, fonts);
     const result = decodeQrFromSvg(toSvg(design.back, design.palette));
-    assert.equal(result?.data, 'https://yazan-ali.net/hi', `qrTarget ${JSON.stringify(qrTarget)}`);
+    assert.equal(result?.data, 'https://example.com/hi', `qrTarget ${JSON.stringify(qrTarget)}`);
   }
 });
 
 test('a bare override still becomes an absolute link', () => {
-  const design = layout({ ...EXAMPLE, qrTarget: 'cal.com/yazan' }, fonts);
-  assert.equal(decodeQrFromSvg(toSvg(design.back, design.palette))?.data, 'https://cal.com/yazan');
+  const design = layout({ ...DEFAULTS, qrTarget: 'cal.com/someone' }, fonts);
+  assert.equal(decodeQrFromSvg(toSvg(design.back, design.palette))?.data, 'https://cal.com/someone');
 });

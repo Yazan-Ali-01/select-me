@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { EXAMPLE, layout, loadFonts, toSvg } from '../lib/core/index.js';
+import { DEFAULTS, layout, loadFonts, toSvg } from '../lib/core/index.js';
 import { svgElements } from './svg-bbox.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -54,7 +54,7 @@ const CASES = [
 
 for (const [label, overrides] of CASES) {
   test(`ink stays inside the artwork: ${label}`, () => {
-    const design = layout({ ...EXAMPLE, ...overrides }, fonts);
+    const design = layout({ ...DEFAULTS, ...overrides }, fonts);
 
     for (const which of ['front', 'back']) {
       const drawing = design[which];
@@ -81,7 +81,7 @@ for (const [label, overrides] of CASES) {
 
 test('the query lines never grow into each other', () => {
   for (const overrides of [{}, { table: 'qa', field: 'x', value: 'y' }, { table: 'a', field: 'b', value: 'c' }]) {
-    const design = layout({ ...EXAMPLE, ...overrides }, fonts);
+    const design = layout({ ...DEFAULTS, ...overrides }, fonts);
     // Ink height of a line must stay under the 14 mm leading.
     assert.ok(design.metrics.queryMm * 0.9 <= 14.01, `query set at ${design.metrics.queryMm.toFixed(2)} mm`);
   }

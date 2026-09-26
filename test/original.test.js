@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { EXAMPLE, layout, loadFonts, toSvg } from '../lib/core/index.js';
+import { DEFAULTS, layout, loadFonts, toSvg } from '../lib/core/index.js';
 import { svgElements } from './svg-bbox.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -30,7 +30,21 @@ const TOLERANCE_MM = 0.02;
  */
 const KNOWN_DIFFERENCES = { 'back-print-270mm.svg': [1] };
 
-const design = layout({ ...EXAMPLE }, fonts);
+/**
+ * The inputs that produced the artwork in test/fixtures.
+ *
+ * They live here rather than in the library's defaults because they are one
+ * person's details — a fixture for this comparison, not a stand-in the tool
+ * should ever put in front of someone else.
+ */
+const ORIGINAL = {
+  ...DEFAULTS,
+  name: 'Yazan Ali',
+  title: 'Senior Software Engineer',
+  url: 'yazan-ali.net/hi',
+};
+
+const design = layout(ORIGINAL, fonts);
 const generated = {
   'front-chest-100mm.svg': toSvg(design.front, design.palette),
   'back-print-270mm.svg': toSvg(design.back, design.palette),

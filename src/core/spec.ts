@@ -66,6 +66,16 @@ export const ADVANCE_EM = 0.6;
  */
 export const FIT_RATIO = 0.99;
 
+/**
+ * Stand-ins used while a field is still empty, so the preview always looks like
+ * a finished shirt rather than one with holes in it.
+ */
+export const PLACEHOLDER = {
+  name: 'Your Name',
+  title: 'Senior Software Engineer',
+  url: 'yoursite.com',
+} as const;
+
 /** Below this the print is a smudge, so the layout refuses to go further. */
 export const MIN_TYPE_MM = 3;
 

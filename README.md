@@ -95,14 +95,14 @@ npm install select-me
 
 ```js
 import { readFile } from 'node:fs/promises';
-import { EXAMPLE, layout, loadFonts, toSvg, toPdf } from 'select-me';
+import { DEFAULTS, layout, loadFonts, toSvg, toPdf } from 'select-me';
 
 const fonts = await loadFonts(async (file) => {
   const buf = await readFile(new URL(`./node_modules/select-me/assets/fonts/${file}`, import.meta.url));
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
 });
 
-const design = layout({ ...EXAMPLE, name: 'Ada Lovelace' }, fonts);
+const design = layout({ ...DEFAULTS, name: 'Ada Lovelace', title: 'Staff Data Scientist' }, fonts);
 
 const svg = toSvg(design.back, design.palette);   // string
 const pdf = await toPdf(design.back, design.palette); // Uint8Array, CMYK

@@ -8,7 +8,7 @@ import { stdin, stdout } from 'node:process';
 import {
   ACCENTS,
   DEFAULT_SORT_COLUMN,
-  EXAMPLE,
+  DEFAULTS,
   fileStem,
   inkFromHex,
   layout,
@@ -40,10 +40,10 @@ const HELP = `
     --url <string>         Printed under the rule.
     --qr <string>          What the QR points at, if not the printed link.
 
-    --headline <string>    The big line. Default: "${EXAMPLE.headline}"
-    --updated <string>     Trailing comment. Default: "${EXAMPLE.updated}"
-    --chest <string>       Chest subject. Default: "${EXAMPLE.chestSubject}"
-    --chest-value <string> Chest value. Default: "${EXAMPLE.chestValue}"
+    --headline <string>    The big line. Default: "${DEFAULTS.headline}"
+    --updated <string>     Trailing comment. Default: "${DEFAULTS.updated}"
+    --chest <string>       Chest subject. Default: "${DEFAULTS.chestSubject}"
+    --chest-value <string> Chest value. Default: "${DEFAULTS.chestValue}"
 
   The query — every identifier and literal is yours
     SELECT {select} FROM {table}
@@ -92,7 +92,7 @@ const str = (v: string | true | undefined): string | undefined =>
 
 /** Accept an accent by name or as a raw hex, because people will paste a hex. */
 function resolveAccent(value: string | undefined): Ink {
-  if (!value) return EXAMPLE.accent;
+  if (!value) return DEFAULTS.accent;
   const custom = inkFromHex(value);
   if (custom) {
     // A hex that matches a preset keeps the preset's measured CMYK and Pantone.
@@ -111,9 +111,9 @@ async function ask(): Promise<Pick<ShirtInput, 'name' | 'title' | 'url'>> {
   const rl = createInterface({ input: stdin, output: stdout });
   try {
     stdout.write('\n  select-me — three questions. Everything else has a default.\n\n');
-    const name = (await rl.question(`  Your name       [${EXAMPLE.name}]  `)) || EXAMPLE.name;
-    const title = (await rl.question(`  Your title      [${EXAMPLE.title}]  `)) || EXAMPLE.title;
-    const url = (await rl.question(`  Your URL        [${EXAMPLE.url}]  `)) || EXAMPLE.url;
+    const name = (await rl.question(`  Your name       [${DEFAULTS.name}]  `)) || DEFAULTS.name;
+    const title = (await rl.question(`  Your title      [${DEFAULTS.title}]  `)) || DEFAULTS.title;
+    const url = (await rl.question(`  Your URL        [${DEFAULTS.url}]  `)) || DEFAULTS.url;
     return { name, title, url };
   } finally {
     rl.close();
@@ -149,15 +149,15 @@ async function main(): Promise<void> {
   }
 
   const input: ShirtInput = {
-    ...EXAMPLE,
+    ...DEFAULTS,
     ...(answers ?? {}),
-    name: str(args.name) ?? answers?.name ?? EXAMPLE.name,
-    title: str(args.title) ?? answers?.title ?? EXAMPLE.title,
-    url: str(args.url) ?? answers?.url ?? EXAMPLE.url,
-    headline: str(args.headline) ?? EXAMPLE.headline,
-    updated: str(args.updated) ?? EXAMPLE.updated,
-    chestSubject: str(args.chest) ?? EXAMPLE.chestSubject,
-    chestValue: str(args['chest-value']) ?? EXAMPLE.chestValue,
+    name: str(args.name) ?? answers?.name ?? DEFAULTS.name,
+    title: str(args.title) ?? answers?.title ?? DEFAULTS.title,
+    url: str(args.url) ?? answers?.url ?? DEFAULTS.url,
+    headline: str(args.headline) ?? DEFAULTS.headline,
+    updated: str(args.updated) ?? DEFAULTS.updated,
+    chestSubject: str(args.chest) ?? DEFAULTS.chestSubject,
+    chestValue: str(args['chest-value']) ?? DEFAULTS.chestValue,
     qrTarget: str(args.qr) ?? '',
     selectColumn: str(args.select),
     table: str(args.table),
@@ -168,7 +168,7 @@ async function main(): Promise<void> {
     // Bare --sort turns the line on without naming a column.
     sortBy: args.sort === true ? DEFAULT_SORT_COLUMN : (str(args.sort) ?? ''),
     accent: resolveAccent(str(args.accent)),
-    ecc: (str(args.ecc)?.toUpperCase() as ShirtInput['ecc']) ?? EXAMPLE.ecc,
+    ecc: (str(args.ecc)?.toUpperCase() as ShirtInput['ecc']) ?? DEFAULTS.ecc,
   };
 
   if (!['L', 'M', 'Q', 'H'].includes(input.ecc)) {

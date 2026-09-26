@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 
-import { EXAMPLE, layout, loadFonts, toSvg } from '../lib/core/index.js';
+import { DEFAULTS, layout, loadFonts, toSvg } from '../lib/core/index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHROME =
@@ -22,7 +22,7 @@ const fonts = await loadFonts(async (file) => {
   const buf = await readFile(join(ROOT, 'assets', 'fonts', file));
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
 });
-const design = layout({ ...EXAMPLE }, fonts);
+const design = layout({ ...DEFAULTS }, fonts);
 
 const page = (body, css) => `<!doctype html><meta charset="utf-8"><style>
   @font-face{font-family:PM;font-weight:600;src:url(file://${ROOT}/public/fonts/IBMPlexMono-SemiBold.woff2) format('woff2')}

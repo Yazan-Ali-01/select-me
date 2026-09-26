@@ -1,7 +1,7 @@
 import {
   ACCENTS,
   DEFAULT_SORT_COLUMN,
-  EXAMPLE,
+  DEFAULTS,
   contrastOnGarment,
   inkFromHex,
   qrUrl,
@@ -56,14 +56,23 @@ function writeUrl(input: ShirtInput): string {
   const params = new URLSearchParams();
   for (const key of SHARED) {
     const value = input[key as SharedKey];
-    if (value && value !== EXAMPLE[key as SharedKey]) params.set(key, String(value));
+    if (value && value !== DEFAULTS[key as SharedKey]) params.set(key, String(value));
   }
-  if (input.accent.hex !== EXAMPLE.accent.hex) params.set('ink', input.accent.hex.slice(1));
+  if (input.accent.hex !== DEFAULTS.accent.hex) params.set('ink', input.accent.hex.slice(1));
   const query = params.toString();
   return `${location.origin}${location.pathname}${query ? `#${query}` : ''}`;
 }
 
-const state: ShirtInput = { ...EXAMPLE, ...readUrl() };
+const shared = readUrl();
+const state: ShirtInput = { ...DEFAULTS, ...shared };
+
+// Name, title and link start blank so the defaults show through as
+// placeholders. Nobody arriving here should have to clear out somebody else's
+// details before they can type their own — and the preview still renders a
+// finished shirt, because the layout stands in for whatever is empty.
+for (const key of ['name', 'title', 'url'] as const) {
+  if (shared[key] === undefined) state[key] = '';
+}
 let view: 'back' | 'front' = 'back';
 let garment = '#111111';
 let fonts: FontSet | null = null;
@@ -124,9 +133,11 @@ function paint(): void {
 
   // Say out loud what the code will actually open, but only when that is not
   // simply the printed link — confirming the obvious is noise.
-  const printed = qrUrl(state.url);
-  // Blank shows what it would fall back to, rather than nothing at all.
-  qrTargetInput.placeholder = printed || 'https://…';
+  // Compare against the link that will actually print — including the
+  // placeholder standing in for an empty box — or a blank field makes the two
+  // look different and the tool announces an override nobody asked for.
+  const printed = qrUrl(state.url.trim() || DEFAULTS.url);
+  qrTargetInput.placeholder = printed;
   const encodes = design.metrics.qrTarget;
   qrEncodes.textContent = encodes && encodes !== printed ? `Scans open ${encodes}` : '';
 
@@ -163,10 +174,11 @@ for (const key of FIELDS) {
   const el = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#f-${key}`);
   if (!el) continue;
 
-  // Derived query fields show what the title produced, as editable placeholder text.
+  // Only a value that came from a shared link pre-fills the box; everything
+  // else shows as a placeholder the person types straight over.
   const initial = state[key] as string | undefined;
-  if (initial !== undefined) el.value = initial;
-  if (el instanceof HTMLInputElement) el.placeholder = String(EXAMPLE[key] ?? '');
+  if (initial) el.value = initial;
+  if (el instanceof HTMLInputElement) el.placeholder = String(DEFAULTS[key] ?? '');
 
   el.addEventListener('input', () => {
     setField(key, el.value);
@@ -178,7 +190,7 @@ for (const key of FIELDS) {
 function setField(key: SharedKey, value: string): void {
   switch (key) {
     case 'ecc':
-      state.ecc = (value || EXAMPLE.ecc) as ShirtInput['ecc'];
+      state.ecc = (value || DEFAULTS.ecc) as ShirtInput['ecc'];
       return;
     case 'selectColumn':
     case 'table':
